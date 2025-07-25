@@ -198,6 +198,7 @@ def create_google_hashes_file(text_file):
 def create_hashes_dict_from_csv(csv_file):
     with open(csv_file, mode="r", newline="") as file:
         csv_reader = csv.reader(file)
+        next(csv_reader)
 
         hashes_dict = {}
 
@@ -340,7 +341,7 @@ def verify_hashes(files_folder_path):
         for file in folder_files
     ]
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=4) as executor:
         futures = [executor.submit(process_file, args) for args in args_list]
         for future in as_completed(futures):
             report = future.result()
