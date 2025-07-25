@@ -4,6 +4,12 @@ import os
 import subprocess
 import argparse
 import sys
+import zipfile
+import os
+import time
+import shutil
+
+folders_to_rename = {}
 
 
 def process_html_file(file_path):
@@ -136,9 +142,14 @@ def process_html_file(file_path):
     # Juntar e salvar
     text_content = "\n".join(resultLines)
 
-    file_name = generate_text_file_name(lines, file_path, date_hour)
+    file_info = generate_text_file_name(lines, file_path, date_hour)
 
-    save_converted_text_file(file_path, file_name, text_content)
+    file_name = file_info.get("file_name")
+    account_identifier = file_info.get("account_identifier")
+
+    save_converted_text_file(
+        file_path, file_name, text_content, account_identifier, isWhats
+    )
 
 
 def generate_text_file_name(lines, html_file_path, date_hour):
@@ -149,60 +160,106 @@ def generate_text_file_name(lines, html_file_path, date_hour):
 
     try:
         index = lines.index("Account Identifier")
-        account_identifier = lines[index + 1]
+        account_identifier = lines[index + 1].replace("+55", "+55 ")
         if account_identifier:
             service += f" {account_identifier}"
-    except:
-        pass
+    except Exception as e:
+        print(f"Account identifier error: {e}")
 
-    file_name = (
-        date_hour.replace(":", "-").replace(" ", "_")
-        + f" {original_name} {service}"
-        + ".txt"
+    date_hour_formatted = date_hour.replace(":", "-").replace(" ", "_")
+
+    file_name = f"{date_hour_formatted} {original_name} {service}.txt"
+
+    return {"file_name": file_name, "account_identifier": account_identifier}
+
+
+def save_converted_text_file(*args):
+    global folders_to_rename
+    html_file_path, file_name, text_content, account_identifier, isWhats = args
+
+    old_path = os.path.dirname(html_file_path)
+
+    identifier_folder_name = old_path.replace(
+        os.path.basename(old_path), account_identifier
     )
 
-    return file_name
+    folders_to_rename[old_path] = {
+        "path": identifier_folder_name,
+        "account_identifier": account_identifier,
+        "is_whats": isWhats,
+    }
 
-
-def save_converted_text_file(html_file_path, file_name, text_content):
-    folder_name = file_name.replace(".txt", "")
-
-    text_file_path = html_file_path.replace("records.html", "")
-
-    if "preservation-1" in html_file_path:
-        text_file_path = html_file_path.replace("preservation-1.html", "")
-
-    folder_path = os.path.join(text_file_path, "..", folder_name)
-
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path, exist_ok=True)
-
-    text_file_path = os.path.join(folder_path, file_name)
+    text_file_path = os.path.join(old_path, file_name)
 
     with open(text_file_path, "w", encoding="utf-8") as file:
         file.write(text_content)
         print(f"Salvo: {text_file_path}")
 
 
+def process_zip_files(*, root_path):
+    root_dir_list = os.listdir(root_path)
+
+    directories = []
+
+    try:
+        for file in root_dir_list:
+            is_zip = file.endswith(".zip")
+
+            if is_zip:
+                file_path = os.path.join(root_path, file)
+                destination_directory = file_path.replace(".zip", "")
+                directories.append(destination_directory)
+                with zipfile.ZipFile(file_path, "r") as zip_ref:
+                    os.makedirs(destination_directory, exist_ok=True)
+                    zip_ref.extractall(destination_directory)
+
+        for dir in directories:
+            while not os.path.exists(dir):
+                print("Esperando descompactar...")
+                time.sleep(2)
+    except Exception as e:
+        print(f"Unzip error: {e}")
+
+
 def process_folders_in_path(root_path):
+    global folders_to_rename
+
+    # try to process zip files
+    process_zip_files(root_path=root_path)
+
+    root_dir_list = os.listdir(root_path)
+
     """
     Procura arquivos .html em subpastas 1 nível abaixo de raiz
     e executa salvar_html_como_txt para cada um.
     """
-    # Listar todos os diretórios 1 nível abaixo
-    for folder in os.listdir(root_path):
+    for folder in root_dir_list:
         folder_path = os.path.join(root_path, folder)
         if os.path.isdir(folder_path):
             # Para cada subpasta, listar arquivos .html
             for file in os.listdir(folder_path):
                 if file.lower().endswith(".html"):
                     html_path = os.path.join(folder_path, file)
-                    print(html_path)
                     process_html_file(html_path)
 
+    # renomeia os diretorios extraídos para o nome do identificador (email, telefone)
+    try:
+        for old_path in folders_to_rename:
+            new_path = folders_to_rename[old_path].get("path")
+            is_whats = folders_to_rename[old_path].get("is_whats")
 
-if __name__ == "__main__":
+            if os.path.exists(new_path) and old_path != new_path:
+                shutil.rmtree(new_path)
 
+            os.renames(old_path, new_path)
+
+            if is_whats:
+                os.makedirs(os.path.join(new_path, "bilhetagem"), exist_ok=True)
+    except Exception as e:
+        print(f"Erro ao renomear diretórios: {e}")
+
+
+def get_arguments():
     parser = argparse.ArgumentParser(description="Processador de logs e bilhetagem")
     parser.add_argument(
         "--pasta_raiz",
@@ -218,6 +275,12 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    return args
+
+
+if __name__ == "__main__":
+    args = get_arguments()
 
     root_path = args.pasta_raiz
     cookie = args.cookie
