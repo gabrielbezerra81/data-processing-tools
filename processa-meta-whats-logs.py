@@ -147,12 +147,13 @@ def generate_text_file_name(lines, html_file_path, date_hour):
     original_name = os.path.basename(html_file_path).replace(".html", "")
     account_identifier = ""
 
-    if "Facebook" in service or "Instagram" in service:
+    try:
         index = lines.index("Account Identifier")
         account_identifier = lines[index + 1]
-
-    if account_identifier:
-        service += f" {account_identifier}"
+        if account_identifier:
+            service += f" {account_identifier}"
+    except:
+        pass
 
     file_name = (
         date_hour.replace(":", "-").replace(" ", "_")
