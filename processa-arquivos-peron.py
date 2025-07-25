@@ -7,6 +7,7 @@ import time
 import os
 import sys
 from selenium.common.exceptions import NoSuchElementException
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 # CONFIGURAÇÕES
@@ -16,7 +17,7 @@ URL_BASE = "https://policia.mperon.org"
 URL_FORM = f"{URL_BASE}/extractor/access_log"
 
 
-def create_webdriver(file_path):
+def create_webdriver(file_path, cookie):
 
     # INICIALIZA O NAVEGADOR
     options = webdriver.ChromeOptions()
@@ -55,50 +56,60 @@ def add_cookies_from_string(driver, cookie, domain):
             )
 
 
-def process_files(files, cookie):
-    # LOOP PARA ENVIAR CADA ARQUIVO
+def process_file(args):
+
+    idx, file, cookie = args
+    obj = create_webdriver(file, cookie)
+    driver = obj["driver"]
+    wait = obj["wait"]
 
     try:
 
-        for idx, file in enumerate(files, start=1):
+        print(f"📄 Enviando arquivo {idx}/{len(files)}: {file}")
 
-            obj = create_webdriver(file)
-            driver = obj["driver"]
-            wait = obj["wait"]
+        print(file)
 
-            print(f"📄 Enviando arquivo {idx}/{len(files)}: {file}")
+        # CLICA NA ABA "Carregar arquivo"
+        tabFile = driver.find_element(By.CSS_SELECTOR, 'a[href="#tabFile"]')
 
-            print(file)
+        tabFile.click()
+        time.sleep(1)
 
-            # CLICA NA ABA "Carregar arquivo"
-            tabFile = driver.find_element(By.CSS_SELECTOR, 'a[href="#tabFile"]')
+        # AGUARDA O INPUT ESTAR VISÍVEL
+        file_input = driver.find_element(By.ID, "import_file")
 
-            tabFile.click()
-            time.sleep(1)
+        # ENVIA O ARQUIVO
+        file_input.send_keys(os.path.abspath(file))
+        time.sleep(1)
 
-            # AGUARDA O INPUT ESTAR VISÍVEL
-            file_input = driver.find_element(By.ID, "import_file")
+        # CLICA EM "ENVIAR"
+        submit_button = wait.until(EC.element_to_be_clickable((By.ID, "submit_form")))
+        submit_button.click()
 
-            # ENVIA O ARQUIVO
-            file_input.send_keys(os.path.abspath(file))
-            time.sleep(1)
+        print("✅ Arquivo enviado.")
 
-            # CLICA EM "ENVIAR"
-            submit_button = wait.until(
-                EC.element_to_be_clickable((By.ID, "submit_form"))
-            )
-            submit_button.click()
+        # AGUARDA RESPOSTA OU PROCESSAMENTO
+        time.sleep(5)
 
-            print("✅ Arquivo enviado.")
-
-            # AGUARDA RESPOSTA OU PROCESSAMENTO
-            time.sleep(5)
-
-            print("🎉 Todos os arquivos foram processados.")
-            driver.quit()
+        print("🎉 Todos os arquivos foram processados.")
+        driver.quit()
     except NoSuchElementException as e:
         print("ERRO_COOKIE_INVALIDO")
+        driver.quit()
         sys.exit(2)
+
+    except Exception as e:
+        print(f"Outro ferramenta Peron: {e}")
+        driver.quit()
+
+
+def process_all_files(files, cookie):
+    # LOOP PARA ENVIAR CADA ARQUIVO
+
+    args = [(idx, file, cookie) for idx, file in enumerate(files, start=1)]
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        executor.map(process_file, args)
 
 
 def create_files_list(root_path):
@@ -141,4 +152,4 @@ if __name__ == "__main__":
         cookie = sys.argv[2]
 
     files = create_files_list(root_path)
-    process_files(files, cookie)
+    process_all_files(files, cookie)
