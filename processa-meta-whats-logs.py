@@ -236,14 +236,17 @@ def rename_folders():
                 file_name = (
                     folders_to_rename[old_path].get("file_name").replace(".txt", "")
                 )
-                new_path = new_path.replace(os.path.basename(new_path), file_name)
+                base_dir = os.path.dirname(new_path)
+                new_path = os.path.join(base_dir, file_name)
 
-            if os.path.exists(new_path) and old_path != new_path:
-                shutil.copytree(old_path, new_path, dirs_exist_ok=True)
-                shutil.rmtree(old_path)
+            both_path_exists = os.path.exists(old_path) and os.path.exists(new_path)
 
-            else:
-                os.renames(old_path, new_path)
+            if both_path_exists:
+                if old_path != new_path:
+                    shutil.copytree(old_path, new_path, dirs_exist_ok=True)
+                    shutil.rmtree(old_path)
+                else:
+                    os.renames(old_path, new_path)
 
             if is_whats and not is_bilhetagem:
                 os.makedirs(os.path.join(new_path, "bilhetagem"), exist_ok=True)
@@ -251,10 +254,11 @@ def rename_folders():
             print(f"Erro ao renomear diretórios: {e}")
 
 
-def process_folders_in_path(root_path):
+def process_folders_in_path(root_path, level=0):
 
     # try to process zip files
-    process_zip_files(root_path=root_path)
+    if level == 0:
+        process_zip_files(root_path=root_path)
 
     root_dir_list = os.listdir(root_path)
 
@@ -270,6 +274,10 @@ def process_folders_in_path(root_path):
                 if file.lower().endswith(".html"):
                     html_path = os.path.join(folder_path, file)
                     process_html_file(html_path)
+                if "bilhetagem" in file and level == 0:
+                    bilhetagem_path = os.path.join(folder_path, "bilhetagem")
+                    process_zip_files(root_path=bilhetagem_path)
+                    process_folders_in_path(bilhetagem_path, level=1)
 
     rename_folders()
 
