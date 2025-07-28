@@ -17,6 +17,7 @@ packages = {
     "beautifulsoup4": "bs4",
     "fpdf": "fpdf",
     "natsort": "natsort",
+    "pypdf": "PdfReader",
 }
 
 

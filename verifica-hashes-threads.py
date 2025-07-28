@@ -8,9 +8,12 @@ from natsort import natsorted
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import argparse
+import subprocess
 
 successIcon = "✅"
 errorIcon = "❌"
+
+google_pdf_filename = str("Valores de Hash")
 
 
 class Hasher(ABC):
@@ -151,15 +154,10 @@ class Reporter(ABC):
 
 
 def check_if_google_file(text_file):
-    with open(text_file, "tr+") as file:
-        text = file.read()
-        text = text.replace("\n", "")
-        hasHash = Hasher.extract_sha512(text)
+    if google_pdf_filename in text_file and text_file.endswith(".pdf"):
+        return True
 
-        if hasHash:
-            return True
-        else:
-            return False
+    return False
 
 
 def create_google_hashes_file(text_file):
@@ -232,11 +230,22 @@ def create_hashes_dict(hashes_path, is_google_hashes):
 
     if hashes_path.endswith(".csv"):
         hashes_dict = create_hashes_dict_from_csv(hashes_path)
-    elif hashes_path.endswith(".txt"):
-
+    else:
         if is_google_hashes:
+            subprocess.run(
+                ["python", "google-pdf-reader.py", "--arquivo-pdf", hashes_path]
+            )
+
+            hashes_path = hashes_path.replace(
+                os.path.basename(hashes_path), "hashes.txt"
+            )
+
             create_google_hashes_file(hashes_path)
-        hashes_dict = create_hashes_dict_from_txt(hashes_path, is_google_hashes)
+
+        hashes_dict = create_hashes_dict_from_txt(
+            hashes_path, isSha512=is_google_hashes
+        )
+
     return hashes_dict
 
 
@@ -268,6 +277,8 @@ def create_files_list(files_folder_path, level):
         elif x == "hashes.txt":
             hashes_path = x
         elif x.endswith(".csv"):
+            hashes_path = x
+        elif google_pdf_filename in x and x.endswith(".pdf"):
             hashes_path = x
 
         folder_files.extend(subfolder_files)
