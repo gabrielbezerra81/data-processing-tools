@@ -187,6 +187,8 @@ def save_converted_text_file(*args):
         "path": identifier_folder_name,
         "account_identifier": account_identifier,
         "is_whats": isWhats,
+        "file_name": file_name,
+        "is_bilhetagem": "Message Log" in text_content or "bilhetagem" in old_path,
     }
 
     text_file_path = os.path.join(old_path, file_name)
@@ -221,8 +223,35 @@ def process_zip_files(*, root_path):
         print(f"Unzip error: {e}")
 
 
-def process_folders_in_path(root_path):
+def rename_folders():
+    # renomeia os diretorios extraídos para o nome do identificador (email, telefone)
     global folders_to_rename
+    for old_path in folders_to_rename:
+        try:
+            new_path = folders_to_rename[old_path].get("path")
+            is_whats = folders_to_rename[old_path].get("is_whats")
+            is_bilhetagem = folders_to_rename[old_path].get("is_bilhetagem")
+
+            if is_bilhetagem:
+                file_name = (
+                    folders_to_rename[old_path].get("file_name").replace(".txt", "")
+                )
+                new_path = new_path.replace(os.path.basename(new_path), file_name)
+
+            if os.path.exists(new_path) and old_path != new_path:
+                shutil.copytree(old_path, new_path, dirs_exist_ok=True)
+                shutil.rmtree(old_path)
+
+            else:
+                os.renames(old_path, new_path)
+
+            if is_whats and not is_bilhetagem:
+                os.makedirs(os.path.join(new_path, "bilhetagem"), exist_ok=True)
+        except Exception as e:
+            print(f"Erro ao renomear diretórios: {e}")
+
+
+def process_folders_in_path(root_path):
 
     # try to process zip files
     process_zip_files(root_path=root_path)
@@ -242,21 +271,7 @@ def process_folders_in_path(root_path):
                     html_path = os.path.join(folder_path, file)
                     process_html_file(html_path)
 
-    # renomeia os diretorios extraídos para o nome do identificador (email, telefone)
-    try:
-        for old_path in folders_to_rename:
-            new_path = folders_to_rename[old_path].get("path")
-            is_whats = folders_to_rename[old_path].get("is_whats")
-
-            if os.path.exists(new_path) and old_path != new_path:
-                shutil.rmtree(new_path)
-
-            os.renames(old_path, new_path)
-
-            if is_whats:
-                os.makedirs(os.path.join(new_path, "bilhetagem"), exist_ok=True)
-    except Exception as e:
-        print(f"Erro ao renomear diretórios: {e}")
+    rename_folders()
 
 
 def get_arguments():
