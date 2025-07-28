@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['main_gui.py'],
+    ['data-processing-tools.py'],
     pathex=[],
     binaries=[],
     datas=[
