@@ -14,7 +14,18 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 cookie_str = "_ga=GA1.1.2104152263.1746708028; _ga_NQ799D13XJ=GS2.1.s1746717031$o2$g1$t1746717175$j0$l0$h0; _ga_NF011H78CX=GS2.1.s1746803384$o3$g1$t1746804077$j0$l0$h0; session=.eJwdzd1ugyAYANBXWXgCMNWkvXQVUi10wsc36x0bLm74QzKXWJu--5Jen4tzJ8scuokc7uTlgxxI2wyVFHit34c3Z-MZf7h2dj2asf_WiYqQDJVBzAzwi7Nzeh4xNVMMSIenucAyt6FCoX8B5eooy6DpJfIyAvXKF3tbQ97aLd8BlKrjQ-ZEr9z4eYMpquc15a6mIYEmlrJgJ_mabl6sf368pi1XX92Rawg6sZsO1jAJN3aRYlE1-MXSeWfYPqJYKyxKRR6Pf0oeSuI.aGUowg.Pimi4rY3oBzSh31sU_md1hJZZew"
 
 URL_BASE = "https://policia.mperon.org"
-URL_FORM = f"{URL_BASE}/extractor/access_log"
+URL_LOG = f"{URL_BASE}/extractor/access_log"
+URL_EXTRACTOR = f"{URL_BASE}/extractor/whatsapp"
+
+
+def process_log_file(driver):
+    driver.get(f"{URL_BASE}/extractor/access_log")
+    pass
+
+
+def process_extraction_file(driver):
+    driver.get(f"{URL_BASE}/extractor/whatsapp")
+    pass
 
 
 def create_webdriver(file_path, cookie):
@@ -33,9 +44,6 @@ def create_webdriver(file_path, cookie):
     # ENTRA NO DOMÍNIO PARA DEFINIR OS COOKIES
     driver.get(URL_BASE)
     add_cookies_from_string(driver, cookie, "policia.mperon.org")
-
-    # ACESSA A PÁGINA DO FORMULÁRIO
-    driver.get(URL_FORM)
 
     return {"driver": driver, "wait": wait}
 
@@ -58,12 +66,20 @@ def add_cookies_from_string(driver, cookie, domain):
 
 def process_file(args):
 
-    idx, file, cookie = args
+    idx, file_info, cookie = args
+
+    file = file_info.get("path")
+    file_type = file_info.get("type")
+
     obj = create_webdriver(file, cookie)
     driver = obj["driver"]
     wait = obj["wait"]
 
     try:
+        if file_type == "log":
+            driver.get(URL_LOG)
+        elif file_type == "bilhetagem":
+            driver.get(URL_EXTRACTOR)
 
         print(f"📄 Enviando arquivo {idx}/{len(files)}: {file}")
 
@@ -89,7 +105,7 @@ def process_file(args):
         print("✅ Arquivo enviado.")
 
         # AGUARDA RESPOSTA OU PROCESSAMENTO
-        time.sleep(5)
+        time.sleep(6)
 
         print("🎉 Todos os arquivos foram processados.")
         driver.quit()
@@ -108,11 +124,12 @@ def process_all_files(files, cookie):
 
     args = [(idx, file, cookie) for idx, file in enumerate(files, start=1)]
 
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         executor.map(process_file, args)
 
 
-def create_files_list(root_path):
+def create_files_list(root_path, file_type="log"):
+    # type => 'log' ir 'bilhetagem'
     files = []
     try:
         elements = os.listdir(root_path)
@@ -128,7 +145,15 @@ def create_files_list(root_path):
                 for file in folder_items:
                     if file.endswith(".txt") and "instructions" not in file:
                         file_path = os.path.join(folder_path, file)
-                        files.append(file_path)
+                        files.append({"path": file_path, "type": file_type})
+                    if "bilhetagem" in file:
+                        bilhetagem_folder = os.path.join(folder_path, "bilhetagem")
+
+                        bilhetagem_files = create_files_list(
+                            root_path=bilhetagem_folder,
+                            file_type="bilhetagem",
+                        )
+                        files.extend(bilhetagem_files)
 
         return files
     except:
