@@ -232,8 +232,14 @@ def create_hashes_dict(hashes_path, is_google_hashes):
         hashes_dict = create_hashes_dict_from_csv(hashes_path)
     else:
         if is_google_hashes:
+            SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
             subprocess.run(
-                ["python", "google-pdf-reader.py", "--arquivo-pdf", hashes_path]
+                [
+                    "python",
+                    os.path.join(SCRIPT_DIR, "google-pdf-reader.py"),
+                    "--arquivo-pdf",
+                    hashes_path,
+                ]
             )
 
             hashes_path = hashes_path.replace(
