@@ -146,7 +146,7 @@ class Janela(ttk.Window):
 
     def configura_aba2(self):
         # === Aba 2: Processamento de Logs ===
-        ttk.Label(self.aba2, text="Pasta raiz com subpastas de logs HTML:").pack(
+        ttk.Label(self.aba2, text="Pasta com arquivos zips (WhatsApp, Meta):").pack(
             pady=(10, 0)
         )
         self.entry_pasta_logs = ttk.Entry(self.aba2, width=path_input_width)
