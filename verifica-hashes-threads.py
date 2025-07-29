@@ -85,7 +85,7 @@ class Reporter(ABC):
         formatted_text = text.replace(successIcon, "[OK] -").replace(
             errorIcon, "[ERRO] -"
         )
-        Reporter.pdf.multi_cell(0, 10, formatted_text, align="Left text")
+        Reporter.pdf.multi_cell(0, 10, formatted_text, align="L")
 
     @classmethod
     def set_pdf_text_color(self, color):
