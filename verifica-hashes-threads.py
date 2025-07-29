@@ -14,6 +14,7 @@ successIcon = "✅"
 errorIcon = "❌"
 
 google_pdf_filename = str("Valores de Hash")
+chunk_size = 1024 * 32
 
 
 class Hasher(ABC):
@@ -32,7 +33,7 @@ class Hasher(ABC):
         sha256 = hashlib.sha256()
         try:
             with open(file_path, "rb+") as file:
-                while chunk := file.read(8192):
+                while chunk := file.read(chunk_size):
                     sha256.update(chunk)
             return sha256.hexdigest()
         except Exception as e:
@@ -43,7 +44,7 @@ class Hasher(ABC):
         sha512_hash = hashlib.sha512()
         try:
             with open(file_path, "rb") as file:
-                while chunk := file.read(8192):
+                while chunk := file.read(chunk_size):
                     sha512_hash.update(chunk)
             return sha512_hash.hexdigest()
         except Exception as e:
