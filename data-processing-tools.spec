@@ -9,7 +9,8 @@ a = Analysis(
     ('verifica-hashes-threads.py','.'),
     ('processa-meta-whats-logs.py', '.'),
     ('processa-arquivos-peron.py', '.'),
-    ('create-hashes-model-file.py','.')
+    ('create-hashes-model-file.py','.'),
+    ('google-pdf-reader.py','.')
     ],
     hiddenimports=[],
     hookspath=[],
