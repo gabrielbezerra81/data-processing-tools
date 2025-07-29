@@ -228,6 +228,7 @@ def rename_folders():
     global folders_to_rename
     for old_path in folders_to_rename:
         try:
+
             new_path = folders_to_rename[old_path].get("path")
             is_whats = folders_to_rename[old_path].get("is_whats")
             is_bilhetagem = folders_to_rename[old_path].get("is_bilhetagem")
@@ -241,12 +242,11 @@ def rename_folders():
 
             both_path_exists = os.path.exists(old_path) and os.path.exists(new_path)
 
-            if both_path_exists:
-                if old_path != new_path:
-                    shutil.copytree(old_path, new_path, dirs_exist_ok=True)
-                    shutil.rmtree(old_path)
-                else:
-                    os.renames(old_path, new_path)
+            if both_path_exists and old_path != new_path:
+                shutil.copytree(old_path, new_path, dirs_exist_ok=True)
+                shutil.rmtree(old_path)
+            else:
+                os.renames(old_path, new_path)
 
             if is_whats and not is_bilhetagem:
                 os.makedirs(os.path.join(new_path, "bilhetagem"), exist_ok=True)
@@ -279,7 +279,8 @@ def process_folders_in_path(root_path, level=0):
                     process_zip_files(root_path=bilhetagem_path)
                     process_folders_in_path(bilhetagem_path, level=1)
 
-    rename_folders()
+    if level == 0:
+        rename_folders()
 
 
 def get_arguments():
