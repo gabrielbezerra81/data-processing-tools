@@ -7,7 +7,7 @@ import importlib.util
 import sys
 
 
-COOKIE_FILE = "cookie.txt"
+# COOKIE_FILE = "cookie.txt"
 
 path_input_width = 80
 
@@ -40,16 +40,16 @@ def check_install_packages(packages):
             print(f"[✓] '{module_name}' já está instalado.")
 
 
-def carregar_cookie():
-    if os.path.exists(COOKIE_FILE):
-        with open(COOKIE_FILE, "r", encoding="utf-8") as f:
-            return f.read().strip()
-    return ""
+# def carregar_cookie():
+#     if os.path.exists(COOKIE_FILE):
+#         with open(COOKIE_FILE, "r", encoding="utf-8") as f:
+#             return f.read().strip()
+#     return ""
 
 
-def salvar_cookie(cookie):
-    with open(COOKIE_FILE, "w", encoding="utf-8") as f:
-        f.write(cookie.strip())
+# def salvar_cookie(cookie):
+#     with open(COOKIE_FILE, "w", encoding="utf-8") as f:
+#         f.write(cookie.strip())
 
 
 def selecionar_pasta(entry_widget):
@@ -157,10 +157,10 @@ class Janela(ttk.Window):
             text="Selecionar Pasta",
             command=lambda: selecionar_pasta(self.entry_pasta_logs),
         ).pack()
-        ttk.Label(self.aba2, text="Cookie de autorização:").pack(pady=(10, 0))
-        self.entry_cookie = ttk.Entry(self.aba2, width=path_input_width)
-        self.entry_cookie.insert(0, carregar_cookie())
-        self.entry_cookie.pack(pady=(3, 0))
+        # ttk.Label(self.aba2, text="Cookie de autorização:").pack(pady=(10, 0))
+        # self.entry_cookie = ttk.Entry(self.aba2, width=path_input_width)
+        # self.entry_cookie.insert(0, carregar_cookie())
+        # self.entry_cookie.pack(pady=(3, 0))
         ttk.Button(
             self.aba2,
             text="Processar Logs e Bilhetagem",
@@ -219,17 +219,17 @@ class Janela(ttk.Window):
 
     def executar_script_logs(self):
         pasta_raiz = self.entry_pasta_logs.get()
-        cookie = self.entry_cookie.get().strip()
+        # cookie = self.entry_cookie.get().strip()
 
         if not os.path.isdir(pasta_raiz):
             messagebox.showerror("Erro", "Selecione uma pasta raiz válida.")
             return
 
-        if not cookie:
-            messagebox.showerror("Erro", "O campo de cookie está vazio.")
-            return
+        # if not cookie:
+        #     messagebox.showerror("Erro", "O campo de cookie está vazio.")
+        #     return
 
-        salvar_cookie(cookie)
+        # salvar_cookie(cookie)
 
         try:
             subprocess.run(
@@ -238,8 +238,8 @@ class Janela(ttk.Window):
                     get_resource_path("processa-meta-whats-logs.py"),
                     "--pasta_raiz",
                     pasta_raiz,
-                    "--cookie",
-                    cookie,
+                    # "--cookie",
+                    # cookie,
                 ],
                 check=True,
             )

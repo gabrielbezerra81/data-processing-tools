@@ -11,24 +11,23 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 # CONFIGURAÇÕES
-cookie_str = "_ga=GA1.1.2104152263.1746708028; _ga_NQ799D13XJ=GS2.1.s1746717031$o2$g1$t1746717175$j0$l0$h0; _ga_NF011H78CX=GS2.1.s1746803384$o3$g1$t1746804077$j0$l0$h0; session=.eJwdzd1ugyAYANBXWXgCMNWkvXQVUi10wsc36x0bLm74QzKXWJu--5Jen4tzJ8scuokc7uTlgxxI2wyVFHit34c3Z-MZf7h2dj2asf_WiYqQDJVBzAzwi7Nzeh4xNVMMSIenucAyt6FCoX8B5eooy6DpJfIyAvXKF3tbQ97aLd8BlKrjQ-ZEr9z4eYMpquc15a6mIYEmlrJgJ_mabl6sf368pi1XX92Rawg6sZsO1jAJN3aRYlE1-MXSeWfYPqJYKyxKRR6Pf0oeSuI.aGUowg.Pimi4rY3oBzSh31sU_md1hJZZew"
+email = "gabriel.bezerra@mpce.mp.br"
+password = "mg-)ju*@GHDp!"
 
-URL_BASE = "https://policia.mperon.org"
+URL_LOGIN = "https://policia.mperon.org/auth/login"
+URL_BASE = "https://policia.mperon.org/"
 URL_LOG = f"{URL_BASE}/extractor/access_log"
 URL_EXTRACTOR = f"{URL_BASE}/extractor/whatsapp"
+max_workers = 2
+SESSION_COOKIES = []
 
-
-def process_log_file(driver):
-    driver.get(f"{URL_BASE}/extractor/access_log")
-    pass
-
-
-def process_extraction_file(driver):
-    driver.get(f"{URL_BASE}/extractor/whatsapp")
-    pass
+email_id = "inputEmail"
+password_id = "inputPassword"
+login_button_id = "logLink"
 
 
 def create_webdriver(file_path, cookie):
+    global SESSION_COOKIES
 
     # INICIALIZA O NAVEGADOR
     options = webdriver.ChromeOptions()
@@ -41,9 +40,37 @@ def create_webdriver(file_path, cookie):
     driver = webdriver.Chrome(options=options)
     wait = WebDriverWait(driver, 10)
 
-    # ENTRA NO DOMÍNIO PARA DEFINIR OS COOKIES
-    driver.get(URL_BASE)
-    add_cookies_from_string(driver, cookie, "policia.mperon.org")
+    if len(SESSION_COOKIES):
+        driver.get(URL_BASE)
+
+        for cookie in SESSION_COOKIES:
+            driver.add_cookie(cookie)
+
+        time.sleep(1)
+
+    else:
+        driver.get(URL_LOGIN)
+
+    # if cookie:
+    #     add_cookies_from_string(driver, cookie, "policia.mperon.org")
+
+    # get cookies for the first time
+    if not len(SESSION_COOKIES):
+        print("NOT LOGGED")
+        wait.until(EC.element_to_be_clickable((By.ID, email_id)))
+        email_input = driver.find_element(By.ID, email_id)
+        password_input = driver.find_element(By.ID, password_id)
+        login_button = driver.find_element(By.ID, login_button_id)
+
+        email_input.send_keys(email)
+        password_input.send_keys(password)
+
+        login_button.submit()
+
+        wait.until(EC.url_to_be(URL_BASE))
+        SESSION_COOKIES = driver.get_cookies()
+    else:
+        print("ALREADY LOGGED")
 
     return {"driver": driver, "wait": wait}
 
@@ -124,11 +151,12 @@ def process_all_files(files, cookie):
 
     args = [(idx, file, cookie) for idx, file in enumerate(files, start=1)]
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         executor.map(process_file, args)
 
 
 def create_files_list(root_path, file_type="log"):
+    print(root_path)
     # type => 'log' ir 'bilhetagem'
     files = []
     try:
@@ -163,18 +191,18 @@ def create_files_list(root_path, file_type="log"):
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) < 2:
+    if len(sys.argv) != 2:
         print(
-            "Use: python script.py <root_folder_path>\nor\nUse: python script.py <root_folder_path> <cookie_string>"
+            "Use: python script.py <root_folder_path>\nor\nUse: python script.py <root_folder_path>"
         )
         sys.exit(1)
 
-    cookie = cookie_str
+    # cookie = ""
 
     root_path = sys.argv[1]
 
-    if len(sys.argv) == 3:
-        cookie = sys.argv[2]
+    # if len(sys.argv) == 3:
+    #     cookie = sys.argv[2]
 
     files = create_files_list(root_path)
-    process_all_files(files, cookie)
+    process_all_files(files, "")

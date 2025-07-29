@@ -290,12 +290,6 @@ def get_arguments():
         required=True,
         help="Pasta raiz contendo subpastas com arquivos html",
     )
-    parser.add_argument(
-        "--cookie",
-        type=str,
-        required=False,
-        help="Cookie de autorização do site do Peron",
-    )
 
     args = parser.parse_args()
 
@@ -306,22 +300,18 @@ if __name__ == "__main__":
     args = get_arguments()
 
     root_path = args.pasta_raiz
-    cookie = args.cookie
 
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
     peron_script_path = os.path.join(SCRIPT_DIR, "processa-arquivos-peron.py")
 
-    params = [
-        "python",
-        peron_script_path,
-        root_path,
-    ]
-
-    if cookie:
-        params.append(cookie)
-
     process_folders_in_path(root_path)
 
-    result = subprocess.run(params)
+    result = subprocess.run(
+        [
+            "python",
+            peron_script_path,
+            root_path,
+        ]
+    )
     if result.returncode == 2:
         sys.exit(result.returncode)
