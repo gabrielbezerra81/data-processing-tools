@@ -18,7 +18,7 @@ URL_LOGIN = "https://policia.mperon.org/auth/login"
 URL_BASE = "https://policia.mperon.org/"
 URL_LOG = f"{URL_BASE}/extractor/access_log"
 URL_EXTRACTOR = f"{URL_BASE}/extractor/whatsapp"
-max_workers = 2
+max_workers = 3
 SESSION_COOKIES = []
 
 email_id = "inputEmail"
