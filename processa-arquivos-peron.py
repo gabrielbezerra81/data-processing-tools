@@ -8,7 +8,7 @@ import os
 import sys
 from selenium.common.exceptions import NoSuchElementException
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from recursize_unzip import unzip_files
+from zip_tools import recursive_unzip_files
 
 
 # CONFIGURAÇÕES
@@ -265,4 +265,4 @@ if __name__ == "__main__":
 
     process_all_files(files, "")
 
-    unzip_files(root_path)
+    recursive_unzip_files(root_path)

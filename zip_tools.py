@@ -23,11 +23,20 @@ def recursive_create_zip_list(root_path):
         return []
 
 
-def unzip_files(root_path):
+def recursive_delete_zips(root_path):
     files = recursive_create_zip_list(root_path)
-    print(
-        f"descompactando {len(files)} arquivos de logs enriquecidos e bilhetagens processadas"
-    )
+    print(f"deletando {len(files)} arquivos zip")
+
+    for file in files:
+        try:
+            os.remove(file)
+        except Exception as e:
+            print(e)
+
+
+def recursive_unzip_files(root_path):
+    files = recursive_create_zip_list(root_path)
+    print(f"descompactando {len(files)} arquivos zips")
 
     for file in files:
         try:

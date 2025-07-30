@@ -8,7 +8,7 @@ import zipfile
 import os
 import time
 import shutil
-from recursize_unzip import recursive_create_zip_list
+from zip_tools import recursive_delete_zips
 
 folders_to_rename = {}
 
@@ -284,17 +284,6 @@ def process_folders_in_path(root_path, level=0):
         rename_folders()
 
 
-def delete_processed_zips(root_path):
-    files = recursive_create_zip_list(root_path)
-    print(f"deletando {len(files)} arquivos zip processados")
-
-    for file in files:
-        try:
-            os.remove(file)
-        except Exception as e:
-            print(e)
-
-
 def get_arguments():
     parser = argparse.ArgumentParser(description="Processador de logs e bilhetagem")
     parser.add_argument(
@@ -318,7 +307,7 @@ if __name__ == "__main__":
     peron_script_path = os.path.join(SCRIPT_DIR, "processa-arquivos-peron.py")
 
     process_folders_in_path(root_path)
-    delete_processed_zips(root_path)
+    recursive_delete_zips(root_path)
 
     result = subprocess.run(
         [
