@@ -10,7 +10,8 @@ a = Analysis(
     ('processa-meta-whats-logs.py', '.'),
     ('processa-arquivos-peron.py', '.'),
     ('create-hashes-model-file.py','.'),
-    ('google-pdf-reader.py','.')
+    ('google-pdf-reader.py','.'),
+    ('zip_tools.py','.')
     ],
     hiddenimports=[],
     hookspath=[],
