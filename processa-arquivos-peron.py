@@ -20,10 +20,32 @@ URL_LOG = f"{URL_BASE}/extractor/access_log"
 URL_EXTRACTOR = f"{URL_BASE}/extractor/whatsapp"
 max_workers = 3
 SESSION_COOKIES = []
+FILE_WAIT_TIME = {2000: 7, 3000: 9, 4000: 10, 5000: 12}
+
 
 email_id = "inputEmail"
 password_id = "inputPassword"
 login_button_id = "logLink"
+
+
+def get_file_wait_by_size(file):
+    global FILE_WAIT_TIME
+
+    try:
+        file_size = os.path.getsize(file)
+
+        wait_time = FILE_WAIT_TIME[2000]
+
+        if not file_size:
+            return wait_time
+
+        for size_threshold in FILE_WAIT_TIME:
+            if file_size >= size_threshold:
+                wait_time = FILE_WAIT_TIME[size_threshold]
+
+        return wait_time
+    except:
+        return FILE_WAIT_TIME[2000]
 
 
 def create_webdriver(file_path, cookie):
@@ -108,7 +130,7 @@ def process_file(args):
         elif file_type == "bilhetagem":
             driver.get(URL_EXTRACTOR)
 
-        print(f"📄 Enviando arquivo {idx}/{len(files)}: {file}")
+        print(f"📄 Enviando arquivo {idx}/{len(files)}: {file}📄")
 
         print(file)
 
@@ -131,8 +153,10 @@ def process_file(args):
 
         print("✅ Arquivo enviado.")
 
+        wait_time = get_file_wait_by_size(file)
+
         # AGUARDA RESPOSTA OU PROCESSAMENTO
-        time.sleep(6)
+        time.sleep(wait_time)
 
         print("🎉 Todos os arquivos foram processados.")
         driver.quit()
