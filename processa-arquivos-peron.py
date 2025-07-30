@@ -179,8 +179,31 @@ def process_all_files(files, cookie):
         executor.map(process_file, args)
 
 
+def is_file_empty(file_path):
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            content = file.read()
+
+            count = content.count("No responsive records located")
+
+            empty_message = False
+            empty_call = False
+
+            if "Message Log\nNo responsive records located" in content:
+                empty_message = True
+
+            if "Call Logs\nNo responsive records located" in content:
+                empty_call = True
+
+            if empty_message and empty_call and count == 2:
+                return True
+
+            return False
+    except:
+        return False
+
+
 def create_files_list(root_path, file_type="log"):
-    print(root_path)
     # type => 'log' ir 'bilhetagem'
     files = []
     try:
@@ -195,9 +218,18 @@ def create_files_list(root_path, file_type="log"):
                 folder_items = os.listdir(folder_path)
 
                 for file in folder_items:
-                    if file.endswith(".txt") and "instructions" not in file:
+                    if file.endswith(".txt"):
                         file_path = os.path.join(folder_path, file)
+
+                        if (
+                            is_file_empty(file_path)
+                            or "instructions" in file
+                            or "preservation" in file
+                        ):
+                            continue
+
                         files.append({"path": file_path, "type": file_type})
+
                     if "bilhetagem" in file:
                         bilhetagem_folder = os.path.join(folder_path, "bilhetagem")
 
