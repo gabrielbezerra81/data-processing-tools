@@ -4,11 +4,11 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
-import os
 import sys
 from selenium.common.exceptions import NoSuchElementException
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from zip_tools import recursive_unzip_files
+import pathlib
 
 
 # CONFIGURAÇÕES
@@ -33,7 +33,8 @@ def get_file_wait_by_size(file):
     global FILE_WAIT_TIME
 
     try:
-        file_size = os.path.getsize(file)
+        path = pathlib.Path(file)
+        file_size = path.stat().st_size / 1024
 
         wait_time = FILE_WAIT_TIME[2000]
 
@@ -45,7 +46,8 @@ def get_file_wait_by_size(file):
                 wait_time = FILE_WAIT_TIME[size_threshold]
 
         return wait_time
-    except:
+    except Exception as e:
+        print(f"get size error: {e}")
         return FILE_WAIT_TIME[2000]
 
 
@@ -56,8 +58,11 @@ def create_webdriver(file_path, cookie):
     options = webdriver.ChromeOptions()
     options.add_argument("--start-maximized")
 
-    dir_path = os.path.dirname(file_path)
+    path = pathlib.Path(file_path)
+
+    dir_path = str(path.resolve().parent)
     prefs = {"download.default_directory": dir_path}
+
     options.add_experimental_option("prefs", prefs)
 
     driver = webdriver.Chrome(options=options)
@@ -145,7 +150,7 @@ def process_file(args):
         file_input = driver.find_element(By.ID, "import_file")
 
         # ENVIA O ARQUIVO
-        file_input.send_keys(os.path.abspath(file))
+        file_input.send_keys(file)
         time.sleep(1)
 
         # CLICA EM "ENVIAR"
@@ -205,43 +210,28 @@ def is_file_empty(file_path):
 
 
 def create_files_list(root_path, file_type="log"):
+    current_path = pathlib.Path(root_path)
     # type => 'log' ir 'bilhetagem'
     files = []
+
     try:
-        elements = os.listdir(root_path)
+        for item in current_path.rglob("*"):
 
-        for folder in elements:
+            if item.name.endswith(".txt"):
+                file_path = str(item.resolve())
 
-            folder_path = os.path.join(root_path, folder)
-            is_dir = os.path.isdir(folder_path)
+                if (
+                    is_file_empty(file_path)
+                    or "instructions" in item.name
+                    or "preservation" in item.name
+                ):
+                    continue
 
-            if is_dir:
-                folder_items = os.listdir(folder_path)
-
-                for file in folder_items:
-                    if file.endswith(".txt"):
-                        file_path = os.path.join(folder_path, file)
-
-                        if (
-                            is_file_empty(file_path)
-                            or "instructions" in file
-                            or "preservation" in file
-                        ):
-                            continue
-
-                        files.append({"path": file_path, "type": file_type})
-
-                    if "bilhetagem" in file:
-                        bilhetagem_folder = os.path.join(folder_path, "bilhetagem")
-
-                        bilhetagem_files = create_files_list(
-                            root_path=bilhetagem_folder,
-                            file_type="bilhetagem",
-                        )
-                        files.extend(bilhetagem_files)
+                files.append({"path": file_path, "type": file_type})
 
         return files
-    except:
+    except Exception as e:
+        print(f"file list error {e}")
         return files
 
 
@@ -256,13 +246,15 @@ if __name__ == "__main__":
 
     # cookie = ""
 
-    root_path = sys.argv[1]
+    cur_path = sys.argv[1]
 
     # if len(sys.argv) == 3:
     #     cookie = sys.argv[2]
 
-    files = create_files_list(root_path)
+    files = create_files_list(cur_path)
 
-    process_all_files(files, "")
+    print(f"{len(files)}")
 
-    recursive_unzip_files(root_path)
+    # process_all_files(files, "")
+
+    recursive_unzip_files(cur_path)
