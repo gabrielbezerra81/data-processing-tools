@@ -5,7 +5,6 @@ import subprocess
 import argparse
 import sys
 import zipfile
-import os
 import time
 import shutil
 from zip_tools import recursive_delete_zips
