@@ -255,6 +255,6 @@ if __name__ == "__main__":
 
     print(f"{len(files)}")
 
-    # process_all_files(files, "")
+    process_all_files(files, "")
 
     recursive_unzip_files(cur_path)

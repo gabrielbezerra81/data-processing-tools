@@ -1,25 +1,21 @@
-import os
+import pathlib
 import zipfile
 
 
 def recursive_create_zip_list(root_path):
     try:
         files = []
+        path = pathlib.Path(root_path)
 
-        elements = os.listdir(root_path)
-
-        for item in elements:
-            item_full_path = os.path.join(root_path, item)
+        for item in path.rglob("*"):
+            item_full_path = str(item.resolve())
             if zipfile.is_zipfile(item_full_path):
                 files.append(item_full_path)
-            elif os.path.isdir(item_full_path):
-                append_files = recursive_create_zip_list(item_full_path)
-                files.extend(append_files)
 
         return files
 
     except Exception as e:
-        print(e)
+        print(f"create zip list error {e}")
         return []
 
 
@@ -28,10 +24,12 @@ def recursive_delete_zips(root_path):
     print(f"deletando {len(files)} arquivos zip")
 
     for file in files:
+        path = pathlib.Path(file)
         try:
-            os.remove(file)
+            if path.exists():
+                path.unlink()
         except Exception as e:
-            print(e)
+            print(f"delete file error {e}")
 
 
 def recursive_unzip_files(root_path):
@@ -40,8 +38,9 @@ def recursive_unzip_files(root_path):
 
     for file in files:
         try:
-            dir = os.path.dirname(file)
+            file_path = pathlib.Path(file)
+            dir = str(file_path.parent.resolve())
             zipfile.ZipFile(file).extractall(dir)
-            os.remove(file)
+            file_path.unlink()
         except Exception as e:
-            print(e)
+            print(f"unzip error {e}")
