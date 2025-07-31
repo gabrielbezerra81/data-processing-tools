@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    folder_path = args.pasta
+    folder_path: str = args.pasta
     current_path = pathlib.Path(folder_path)
 
     zip_files = [file.name for file in current_path.glob("*.zip")]

@@ -1,5 +1,4 @@
 import hashlib
-import os
 import re
 from fpdf import FPDF
 import csv
@@ -9,6 +8,8 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import argparse
 import subprocess
+from pathlib import Path
+from typing import TypedDict, Literal
 
 successIcon = "✅"
 errorIcon = "❌"
@@ -16,10 +17,18 @@ errorIcon = "❌"
 google_pdf_filename = str("Valores de Hash")
 chunk_size = 1024 * 32
 
+Color = Literal["green", "black", "red"]
+
+
+class PDFSection(TypedDict):
+    text: str
+    color: Color
+    collision: bool
+
 
 class Hasher(ABC):
     @classmethod
-    def generate_file_hash(self, file_path, is_google_hashes):
+    def generate_file_hash(self, file_path: Path, is_google_hashes: bool):
         generated_hash = (
             Hasher.calculate_sha512(file_path)
             if is_google_hashes
@@ -29,7 +38,7 @@ class Hasher(ABC):
         return generated_hash
 
     @classmethod
-    def calculate_sha256(self, file_path):
+    def calculate_sha256(self, file_path: Path):
         sha256 = hashlib.sha256()
         try:
             with open(file_path, "rb+") as file:
@@ -40,7 +49,7 @@ class Hasher(ABC):
             return None
 
     @classmethod
-    def calculate_sha512(self, file_path):
+    def calculate_sha512(self, file_path: Path):
         sha512_hash = hashlib.sha512()
         try:
             with open(file_path, "rb") as file:
@@ -52,7 +61,7 @@ class Hasher(ABC):
             return None
 
     @classmethod
-    def extract_sha256(self, text):
+    def extract_sha256(self, text: str):
         pattern = r"\b[a-f0-9]{64}\b"
         result = re.search(pattern, text)
         if result:
@@ -60,7 +69,7 @@ class Hasher(ABC):
         return None
 
     @classmethod
-    def extract_sha512(self, text):
+    def extract_sha512(self, text: str):
         pattern = r"[0-9a-fA-F]{128}"
         result = re.search(pattern, text)
         if result:
@@ -73,7 +82,7 @@ class Reporter(ABC):
     verified_files = 0
     hashes_count = 0
     pdf = FPDF()  # type: ignore
-    pdf_sections = []
+    pdf_sections: list[PDFSection] = []
 
     @classmethod
     def configure_pdf(self):
@@ -81,14 +90,14 @@ class Reporter(ABC):
         Reporter.pdf.set_font("Arial", size=12)
 
     @classmethod
-    def add_text_to_pdf(self, text):
+    def add_text_to_pdf(self, text: str):
         formatted_text = text.replace(successIcon, "[OK] -").replace(
             errorIcon, "[ERRO] -"
         )
         Reporter.pdf.multi_cell(0, 10, formatted_text, align="L")
 
     @classmethod
-    def set_pdf_text_color(self, color):
+    def set_pdf_text_color(self, color: Color):
         if color == "green":
             Reporter.pdf.set_text_color(0, 150, 0)
         elif color == "red":
@@ -98,7 +107,12 @@ class Reporter(ABC):
 
     @classmethod
     def create_file_report(
-        self, file_name, hash_not_found, has_collision, original_hash, generated_hash
+        self,
+        file_name: str,
+        hash_not_found: bool,
+        has_collision: bool,
+        original_hash: str,
+        generated_hash: str | None,
     ):
         text = ""
 
@@ -128,7 +142,7 @@ class Reporter(ABC):
         }
 
     @classmethod
-    def save_report_pdf(self, folder_path):
+    def save_report_pdf(self, folder_path: Path):
         Reporter.set_pdf_text_color(color="black")
         file_name = "relatorio_hashes.pdf"
 
@@ -151,19 +165,21 @@ class Reporter(ABC):
             Reporter.set_pdf_text_color(section.get("color", "black"))
             Reporter.add_text_to_pdf(section.get("text"))
 
-        Reporter.pdf.output(os.path.join(folder_path, file_name))
+        path = folder_path.joinpath(file_name)
+
+        Reporter.pdf.output(path.resolve())
 
 
-def check_if_google_file(text_file):
-    if google_pdf_filename in text_file and text_file.endswith(".pdf"):
+def check_if_google_file(text_file: Path):
+    if google_pdf_filename in text_file.name and text_file.name.endswith(".pdf"):
         return True
 
     return False
 
 
-def create_google_hashes_file(text_file):
+def create_google_hashes_file(text_file: Path):
     with open(text_file, "tr+") as file:
-        filtered_lines = []
+        filtered_lines: list[str] = []
 
         text = file.read()
         if "SHA512" not in text:
@@ -194,12 +210,12 @@ def create_google_hashes_file(text_file):
         file.writelines(filtered_lines)
 
 
-def create_hashes_dict_from_csv(csv_file):
+def create_hashes_dict_from_csv(csv_file: Path):
     with open(csv_file, mode="r", newline="") as file:
         csv_reader = csv.reader(file)
         next(csv_reader)
 
-        hashes_dict = {}
+        hashes_dict: dict[str, str] = {}
 
         for row in csv_reader:
             file_name = row[1]
@@ -209,8 +225,8 @@ def create_hashes_dict_from_csv(csv_file):
         return hashes_dict
 
 
-def create_hashes_dict_from_txt(txt_file, isSha512):
-    hashes_dict = {}
+def create_hashes_dict_from_txt(txt_file: Path, isSha512: bool):
+    hashes_dict: dict[str, str | None] = {}
 
     with open(txt_file, "tr") as file:
         lines = file.readlines()
@@ -226,26 +242,26 @@ def create_hashes_dict_from_txt(txt_file, isSha512):
         return hashes_dict
 
 
-def create_hashes_dict(hashes_path, is_google_hashes):
-    hashes_dict = {}
+def create_hashes_dict(hashes_path: Path, is_google_hashes: bool):
+    hashes_dict: dict[str, str] = {}
 
-    if hashes_path.endswith(".csv"):
+    if hashes_path.name.endswith(".csv"):
         hashes_dict = create_hashes_dict_from_csv(hashes_path)
     else:
         if is_google_hashes:
-            SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+            current_path = Path(__file__)
+            # NOTE:
+            SCRIPT_DIR = current_path.parent.joinpath("google-pdf-reader.py")
             subprocess.run(
                 [
                     "python",
-                    os.path.join(SCRIPT_DIR, "google-pdf-reader.py"),
+                    SCRIPT_DIR.resolve(),
                     "--arquivo-pdf",
                     hashes_path,
                 ]
             )
 
-            hashes_path = hashes_path.replace(
-                os.path.basename(hashes_path), "hashes.txt"
-            )
+            hashes_path = hashes_path.parent.joinpath("hashes.txt")
 
             create_google_hashes_file(hashes_path)
 
@@ -256,37 +272,33 @@ def create_hashes_dict(hashes_path, is_google_hashes):
     return hashes_dict
 
 
-def create_files_list(files_folder_path, level):
-    hashes_path = ""
+def create_files_list(files_folder_path: Path, level: int):
+    hashes_path: Path | None = None
 
-    folder_files = []
+    folder_files: list[Path] = []
 
-    for x in os.listdir(files_folder_path):
+    for item in files_folder_path.iterdir():
         subfolder_files = []
 
-        is_dir = os.path.isdir(os.path.join(files_folder_path, x))
+        is_dir = item.is_dir()
 
-        if level == 1:
-            x = os.path.join(os.path.basename(files_folder_path), x)
+        item = item.resolve()
 
         if is_dir and level == 0:
-            subfolder_path = os.path.join(files_folder_path, x)
-            subfolder_files = create_files_list(subfolder_path, level=1).get(
-                "folder_files", []
-            )
-        elif x.endswith(".zip"):
-            folder_files.append(x)
+            subfolder_files = create_files_list(item, level=1).get("folder_files", [])
+        elif item.name.endswith(".zip"):
+            folder_files.append(item)
             # adiciona os arquivos contidos nas subpastas em até 1 nível abaixo
-        elif x.endswith(".gpg"):
-            folder_files.append(x)
-        elif x == "HASHES.txt":
-            hashes_path = x
-        elif x == "hashes.txt":
-            hashes_path = x
-        elif x.endswith(".csv"):
-            hashes_path = x
-        elif google_pdf_filename in x and x.endswith(".pdf"):
-            hashes_path = x
+        elif item.name.endswith(".gpg"):
+            folder_files.append(item)
+        elif item.name == "HASHES.txt":
+            hashes_path = item
+        elif item.name == "hashes.txt":
+            hashes_path = item
+        elif item.name.endswith(".csv"):
+            hashes_path = item
+        elif google_pdf_filename in item.name and item.name.endswith(".pdf"):
+            hashes_path = item
 
         folder_files.extend(subfolder_files)
 
@@ -295,10 +307,10 @@ def create_files_list(files_folder_path, level):
     return {"folder_files": folder_files, "hashes_path": hashes_path}
 
 
-def process_file(args):
+def process_file(args: tuple[Path, Path, dict[str, str], bool]):
     file, files_folder_path, hashes_dict, is_google_hashes = args
-    file_name = os.path.basename(file)
-    file_path = os.path.join(files_folder_path, file)
+    file_name = file.name
+    file_path = file.resolve()
 
     try:
         original_hash = hashes_dict.get(file_name, None)
@@ -328,23 +340,24 @@ def process_file(args):
     return file_report
 
 
-def verify_hashes(files_folder_path):
-    if not os.path.exists(files_folder_path):
+def verify_hashes(files_folder_path: str):
+    path = Path(files_folder_path)
+    if not path.exists():
         print("o caminho da pasta de arquivos não existe")
         sys.exit(1)
 
     Reporter.configure_pdf()
 
-    object = create_files_list(files_folder_path, level=0)
+    object = create_files_list(path, level=0)
 
-    folder_files = object["folder_files"]
-    hashes_path = object["hashes_path"]
+    folder_files: list[Path] = object["folder_files"]
+    hashes_path: Path | None = object["hashes_path"]
 
     if not hashes_path:
         print("o caminho do arquivo de hashes.txt ou .csv não existe")
         sys.exit(1)
 
-    hashes_path = os.path.join(files_folder_path, hashes_path)
+    hashes_path = hashes_path.resolve()
 
     is_google_hashes = check_if_google_file(hashes_path)
     hashes_dict = create_hashes_dict(hashes_path, is_google_hashes)
@@ -362,7 +375,7 @@ def verify_hashes(files_folder_path):
     with ThreadPoolExecutor(max_workers=4) as executor:
         futures = [executor.submit(process_file, args) for args in args_list]
         for future in as_completed(futures):
-            report = future.result()
+            report: PDFSection = future.result()
 
             Reporter.verified_files += 1
 
@@ -377,10 +390,11 @@ def verify_hashes(files_folder_path):
                 {
                     "text": report.get("text"),
                     "color": report.get("color"),
+                    "collision": report.get("collision"),
                 }
             )
 
-    Reporter.save_report_pdf(files_folder_path)
+    Reporter.save_report_pdf(path)
 
 
 if __name__ == "__main__":
@@ -394,6 +408,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    folder_path = args.pasta
+    folder_path: str = args.pasta
 
     verify_hashes(folder_path)

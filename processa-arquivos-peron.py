@@ -1,5 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -9,7 +10,7 @@ from selenium.common.exceptions import NoSuchElementException
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from zip_tools import recursive_unzip_files
 import pathlib
-
+from typing import TypedDict, Literal
 
 # CONFIGURAÇÕES
 email = "gabriel.bezerra@mpce.mp.br"
@@ -29,8 +30,20 @@ email_id = "inputEmail"
 password_id = "inputPassword"
 login_button_id = "logLink"
 
+FileType = Literal["log", "bilhetagem"]
 
-def get_file_wait_by_size(file):
+
+class FileItem(TypedDict):
+    path: str
+    type: FileType
+
+
+class DriverResult(TypedDict):
+    driver: WebDriver
+    wait: WebDriverWait[WebDriver]
+
+
+def get_file_wait_by_size(file: str):
     global FILE_WAIT_TIME
 
     try:
@@ -52,7 +65,7 @@ def get_file_wait_by_size(file):
         return FILE_WAIT_TIME[2000]
 
 
-def create_webdriver(file_path, cookie):
+def create_webdriver(file_path: str, cookie: str) -> DriverResult:
     global SESSION_COOKIES
 
     # INICIALIZA O NAVEGADOR
@@ -105,7 +118,7 @@ def create_webdriver(file_path, cookie):
 
 
 # FUNÇÃO PARA INSERIR COOKIES
-def add_cookies_from_string(driver, cookie, domain):
+def add_cookies_from_string(driver: WebDriver, cookie: str, domain: str):
     parts = cookie.split(";")
     for part in parts:
         if "=" in part:
@@ -120,7 +133,7 @@ def add_cookies_from_string(driver, cookie, domain):
             )
 
 
-def process_file(args):
+def process_file(args: tuple[int, FileItem, str]):
 
     idx, file_info, cookie = args
 
@@ -177,7 +190,7 @@ def process_file(args):
         driver.quit()
 
 
-def process_all_files(files, cookie):
+def process_all_files(files: list[FileItem], cookie: str):
     # LOOP PARA ENVIAR CADA ARQUIVO
 
     args = [(idx, file, cookie) for idx, file in enumerate(files, start=1)]
@@ -220,10 +233,10 @@ def is_bilhetagem_file(file_path):
         return any(word in content for word in BILHETAGEM_KEYWORDS)
 
 
-def create_files_list(root_path):
+def create_files_list(root_path: str):
     current_path = pathlib.Path(root_path)
 
-    files = []
+    files: list[FileItem] = []
 
     try:
         for item in current_path.rglob("*"):
@@ -232,7 +245,7 @@ def create_files_list(root_path):
                 file_path = str(item.resolve())
 
                 # type => 'log' ir 'bilhetagem'
-                file_type = "log"
+                file_type: FileType = "log"
 
                 if is_bilhetagem_file(file_path):
                     file_type = "bilhetagem"

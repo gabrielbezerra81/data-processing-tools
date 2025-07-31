@@ -8,11 +8,26 @@ import zipfile
 import time
 import shutil
 from zip_tools import recursive_delete_zips
+from typing import TypedDict, Tuple
 
-folders_to_rename = {}
+
+class FolderRenameItem(TypedDict):
+    path: str
+    account_identifier: str
+    is_whats: bool
+    file_name: str
+    is_bilhetagem: bool
 
 
-def process_html_file(file_path):
+class FullFileName(TypedDict):
+    file_name: str
+    account_identifier: str
+
+
+folders_to_rename: dict[str, FolderRenameItem] = {}
+
+
+def process_html_file(file_path: str):
     # Ler conteúdo do HTML
     html_content = ""
     with open(file_path, "r", encoding="utf-8") as f:
@@ -152,7 +167,9 @@ def process_html_file(file_path):
     )
 
 
-def generate_text_file_name(lines, html_file_path, date_hour):
+def generate_text_file_name(
+    lines: list[str], html_file_path: str, date_hour: str
+) -> FullFileName:
     service = lines[1]
 
     original_name = os.path.basename(html_file_path).replace(".html", "")
@@ -173,9 +190,14 @@ def generate_text_file_name(lines, html_file_path, date_hour):
     return {"file_name": file_name, "account_identifier": account_identifier}
 
 
-def save_converted_text_file(*args):
+def save_converted_text_file(
+    html_file_path: str,
+    file_name: str,
+    text_content: str,
+    account_identifier: str,
+    isWhats: bool,
+):
     global folders_to_rename
-    html_file_path, file_name, text_content, account_identifier, isWhats = args
 
     old_path = os.path.dirname(html_file_path)
 
@@ -198,10 +220,10 @@ def save_converted_text_file(*args):
         print(f"Salvo: {text_file_path}")
 
 
-def process_zip_files(*, root_path):
+def process_zip_files(*, root_path: str):
     root_dir_list = os.listdir(root_path)
 
-    directories = []
+    directories: list[str] = []
 
     try:
         for file in root_dir_list:
@@ -254,7 +276,7 @@ def rename_folders():
             print(f"Erro ao renomear diretórios: {e}")
 
 
-def process_folders_in_path(root_path, level=0):
+def process_folders_in_path(root_path: str, level=0):
 
     # try to process zip files
     if level == 0:
@@ -300,7 +322,7 @@ def get_arguments():
 if __name__ == "__main__":
     args = get_arguments()
 
-    root_path = args.pasta_raiz
+    root_path: str = args.pasta_raiz
 
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
     peron_script_path = os.path.join(SCRIPT_DIR, "processa-arquivos-peron.py")
