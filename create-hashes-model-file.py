@@ -1,10 +1,8 @@
-import os
+import pathlib
 import argparse
 
 
 if __name__ == "__main__":
-    import sys
-
     parser = argparse.ArgumentParser(
         description="Cria um modelo de a arquivo hashes.txt"
     )
@@ -18,10 +16,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     folder_path = args.pasta
+    current_path = pathlib.Path(folder_path)
 
-    files = os.listdir(folder_path)
-
-    zip_files = [file for file in files if file.endswith(".zip")]
+    zip_files = [file.name for file in current_path.glob("*.zip")]
 
     for index in range(len(zip_files)):
 
@@ -30,7 +27,9 @@ if __name__ == "__main__":
         else:
             zip_files[index] += "-hash"
 
-    with open(os.path.join(folder_path, "hashes.txt"), "wt") as file:
+    textfile_path = current_path.joinpath("hashes.txt")
+
+    with open(textfile_path, "wt") as file:
         file.seek(0)
         file.truncate()
         file.writelines(zip_files)
