@@ -1,6 +1,6 @@
 from pypdf import PdfReader
 import argparse
-import os
+import pathlib
 
 
 pdf_parts = []
@@ -33,9 +33,11 @@ def read_google_hashes_pdf(pdf_path):
 
         page.extract_text(0, visitor_text=pdf_visitor_body)
 
-    base_path = os.path.dirname(pdf_path)
+    path = pathlib.Path(pdf_path)
+    dir_path = path.parent
+    new_textfile_path = dir_path.joinpath("hashes.txt")
 
-    with open(os.path.join(base_path, "hashes.txt"), "w") as file:
+    with open(new_textfile_path, "w") as file:
         file.seek(0)
         file.truncate()
         file.writelines(pdf_parts)
