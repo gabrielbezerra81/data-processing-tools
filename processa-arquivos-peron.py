@@ -209,9 +209,9 @@ def is_file_empty(file_path):
         return False
 
 
-def create_files_list(root_path, file_type="log"):
+def create_files_list(root_path):
     current_path = pathlib.Path(root_path)
-    # type => 'log' ir 'bilhetagem'
+
     files = []
 
     try:
@@ -219,6 +219,12 @@ def create_files_list(root_path, file_type="log"):
 
             if item.name.endswith(".txt"):
                 file_path = str(item.resolve())
+
+                # type => 'log' ir 'bilhetagem'
+                file_type = "log"
+
+                if "bilhetagem" in file_path:
+                    file_type = "bilhetagem"
 
                 if (
                     is_file_empty(file_path)
