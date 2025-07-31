@@ -22,6 +22,7 @@ URL_EXTRACTOR = f"{URL_BASE}/extractor/whatsapp"
 max_workers = 3
 SESSION_COOKIES = []
 FILE_WAIT_TIME = {2000: 7, 3000: 9, 4000: 10, 5000: 12}
+BILHETAGEM_KEYWORDS = ["Message Log", "Call Log", "Call Logs"]
 
 
 email_id = "inputEmail"
@@ -209,6 +210,16 @@ def is_file_empty(file_path):
         return False
 
 
+def is_bilhetagem_file(file_path):
+    if "bilhetagem" in file_path:
+        return True
+
+    with open(file_path, "r", encoding="utf-8") as file:
+        content = file.read()
+
+        return any(word in content for word in BILHETAGEM_KEYWORDS)
+
+
 def create_files_list(root_path):
     current_path = pathlib.Path(root_path)
 
@@ -223,7 +234,7 @@ def create_files_list(root_path):
                 # type => 'log' ir 'bilhetagem'
                 file_type = "log"
 
-                if "bilhetagem" in file_path:
+                if is_bilhetagem_file(file_path):
                     file_type = "bilhetagem"
 
                 if (
