@@ -283,7 +283,7 @@ if __name__ == "__main__":
 
     files = create_files_list(cur_path)
 
-    print(f"{len(files)}")
+    print(f"Processando {len(files)} arquivos")
 
     process_all_files(files, "")
 
