@@ -7,9 +7,9 @@ from natsort import natsorted
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import argparse
-import subprocess
 from pathlib import Path
 from typing import TypedDict, Literal
+from google_pdf_reader import read_google_hashes_pdf
 
 successIcon = "✅"
 errorIcon = "❌"
@@ -249,17 +249,7 @@ def create_hashes_dict(hashes_path: Path, is_google_hashes: bool):
         hashes_dict = create_hashes_dict_from_csv(hashes_path)
     else:
         if is_google_hashes:
-            current_path = Path(__file__)
-            # NOTE:
-            SCRIPT_DIR = current_path.parent.joinpath("google-pdf-reader.py")
-            subprocess.run(
-                [
-                    "python",
-                    SCRIPT_DIR.resolve(),
-                    "--arquivo-pdf",
-                    hashes_path,
-                ]
-            )
+            read_google_hashes_pdf(hashes_path)
 
             hashes_path = hashes_path.parent.joinpath("hashes.txt")
 
@@ -409,5 +399,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     folder_path: str = args.pasta
-
     verify_hashes(folder_path)

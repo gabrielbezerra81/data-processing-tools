@@ -1,13 +1,12 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.webdriver import WebDriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions
 import time
 import sys
 from selenium.common.exceptions import NoSuchElementException
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from zip_tools import recursive_unzip_files
 import pathlib
 from typing import TypedDict, Literal
@@ -99,7 +98,7 @@ def create_webdriver(file_path: str, cookie: str) -> DriverResult:
     # get cookies for the first time
     if not len(SESSION_COOKIES):
         print("NOT LOGGED")
-        wait.until(EC.element_to_be_clickable((By.ID, email_id)))
+        wait.until(expected_conditions.element_to_be_clickable((By.ID, email_id)))
         email_input = driver.find_element(By.ID, email_id)
         password_input = driver.find_element(By.ID, password_id)
         login_button = driver.find_element(By.ID, login_button_id)
@@ -109,7 +108,7 @@ def create_webdriver(file_path: str, cookie: str) -> DriverResult:
 
         login_button.submit()
 
-        wait.until(EC.url_to_be(URL_BASE))
+        wait.until(expected_conditions.url_to_be(URL_BASE))
         SESSION_COOKIES = driver.get_cookies()
     else:
         print("ALREADY LOGGED")
@@ -133,9 +132,9 @@ def add_cookies_from_string(driver: WebDriver, cookie: str, domain: str):
             )
 
 
-def process_file(args: tuple[int, FileItem, str]):
+def process_file(args: tuple[int, FileItem, str, int]):
 
-    idx, file_info, cookie = args
+    idx, file_info, cookie, total = args
 
     file = file_info.get("path")
     file_type = file_info.get("type")
@@ -150,7 +149,7 @@ def process_file(args: tuple[int, FileItem, str]):
         elif file_type == "bilhetagem":
             driver.get(URL_EXTRACTOR)
 
-        print(f"📄 Enviando arquivo {idx}/{len(files)}: {file}📄")
+        print(f"📄 Enviando arquivo {idx}/{total}: {file}📄")
 
         print(file)
 
@@ -168,7 +167,9 @@ def process_file(args: tuple[int, FileItem, str]):
         time.sleep(1)
 
         # CLICA EM "ENVIAR"
-        submit_button = wait.until(EC.element_to_be_clickable((By.ID, "submit_form")))
+        submit_button = wait.until(
+            expected_conditions.element_to_be_clickable((By.ID, "submit_form"))
+        )
         submit_button.click()
 
         print("✅ Arquivo enviado.")
@@ -193,7 +194,7 @@ def process_file(args: tuple[int, FileItem, str]):
 def process_all_files(files: list[FileItem], cookie: str):
     # LOOP PARA ENVIAR CADA ARQUIVO
 
-    args = [(idx, file, cookie) for idx, file in enumerate(files, start=1)]
+    args = [(idx, file, cookie, len(files)) for idx, file in enumerate(files, start=1)]
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         executor.map(process_file, args)
@@ -265,6 +266,16 @@ def create_files_list(root_path: str):
         return files
 
 
+def process_files_peron(cur_path: str):
+    files = create_files_list(cur_path)
+
+    print(f"Processando {len(files)} arquivos")
+
+    process_all_files(files, "")
+
+    recursive_unzip_files(cur_path)
+
+
 if __name__ == "__main__":
     import sys
 
@@ -274,17 +285,9 @@ if __name__ == "__main__":
         )
         sys.exit(1)
 
-    # cookie = ""
-
     cur_path = sys.argv[1]
+
+    process_files_peron(cur_path)
 
     # if len(sys.argv) == 3:
     #     cookie = sys.argv[2]
-
-    files = create_files_list(cur_path)
-
-    print(f"Processando {len(files)} arquivos")
-
-    process_all_files(files, "")
-
-    recursive_unzip_files(cur_path)

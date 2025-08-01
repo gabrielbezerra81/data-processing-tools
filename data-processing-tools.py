@@ -6,6 +6,10 @@ import importlib.util
 import sys
 from pathlib import Path
 
+from scripts.verifica_hashes_threads import verify_hashes
+from scripts.processa_meta_whats_logs import process_logs_extractions
+from scripts.create_hashes_model_file import create_hashes_file
+
 
 # COOKIE_FILE = "cookie.txt"
 
@@ -14,7 +18,7 @@ path_input_width = 80
 
 packages = {
     "selenium": "selenium",
-    "beautifulsoup4": "bs4",
+    "bs4": "beautifulsoup4",
     "fpdf": "fpdf",
     "natsort": "natsort",
     "pypdf": "PdfReader",
@@ -189,17 +193,7 @@ class Janela(ttk.Window):
             return
 
         try:
-            subprocess.run(
-                [
-                    "python",
-                    get_resource_path("verifica-hashes-threads.py"),
-                    "--pasta",
-                    pasta,
-                    # "--arquivo_hashes",
-                    # arquivo,
-                ],
-                check=True,
-            )
+            verify_hashes(str(path.resolve()))
             messagebox.showinfo("Sucesso", "Verificação de hashes concluída.")
         except subprocess.CalledProcessError as e:
             messagebox.showerror("Erro", f"Erro ao executar script:\n{e}")
@@ -220,17 +214,7 @@ class Janela(ttk.Window):
         # salvar_cookie(cookie)
 
         try:
-            subprocess.run(
-                [
-                    "python",
-                    get_resource_path("processa-meta-whats-logs.py"),
-                    "--pasta_raiz",
-                    pasta_raiz,
-                    # "--cookie",
-                    # cookie,
-                ],
-                check=True,
-            )
+            process_logs_extractions(pasta_raiz)
 
             messagebox.showinfo("Sucesso", "Processamento de logs concluído.")
         except subprocess.CalledProcessError as e:
@@ -250,15 +234,7 @@ class Janela(ttk.Window):
             return
 
         try:
-            subprocess.run(
-                [
-                    "python",
-                    get_resource_path("create-hashes-model-file.py"),
-                    "--pasta",
-                    pasta,
-                ],
-                check=True,
-            )
+            create_hashes_file(pasta)
             messagebox.showinfo("Sucesso", "Arquivo hashes-modelo.txt gerado.")
         except subprocess.CalledProcessError as e:
             messagebox.showerror("Erro", f"Erro ao executar script:\n{e}")

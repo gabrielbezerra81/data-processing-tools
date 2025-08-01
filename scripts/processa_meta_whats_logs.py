@@ -1,14 +1,13 @@
 import re
 from bs4 import BeautifulSoup
-import subprocess
 import argparse
-import sys
 import zipfile
 import time
 import shutil
 from zip_tools import recursive_delete_zips
 from typing import TypedDict
 from pathlib import Path
+from processa_arquivos_peron import process_files_peron
 
 
 class FolderRenameItem(TypedDict):
@@ -318,22 +317,17 @@ def get_arguments():
     return args
 
 
+def process_logs_extractions(root_path: str):
+    process_folders_in_path(root_path)
+
+    recursive_delete_zips(root_path)
+
+    process_files_peron(root_path)
+
+
 if __name__ == "__main__":
     args = get_arguments()
 
     root_path: str = args.pasta_raiz
 
-    peron_script_path = Path(__file__).parent.joinpath("processa-arquivos-peron.py")
-
-    process_folders_in_path(root_path)
-    recursive_delete_zips(root_path)
-
-    result = subprocess.run(
-        [
-            "python",
-            peron_script_path,
-            root_path,
-        ]
-    )
-    if result.returncode == 2:
-        sys.exit(result.returncode)
+    process_logs_extractions(root_path)

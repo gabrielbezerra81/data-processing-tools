@@ -1,19 +1,21 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-
 a = Analysis(
     ['data-processing-tools.py'],
     pathex=[],
     binaries=[],
-    datas=[
-    ('verifica-hashes-threads.py','.'),
-    ('processa-meta-whats-logs.py', '.'),
-    ('processa-arquivos-peron.py', '.'),
-    ('create-hashes-model-file.py','.'),
-    ('google-pdf-reader.py','.'),
-    ('zip_tools.py','.')
+    datas=[('./scripts', '.')],
+    hiddenimports=[
+        'pypdf',
+        'fpdf',
+        'selenium',
+        'selenium.webdriver.common.by',
+        'selenium.webdriver.chrome.webdriver',
+        'selenium.webdriver.support.ui',
+        'selenium.webdriver.support.expected_conditions',
+        'bs4',
+        'natsort'
     ],
-    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
