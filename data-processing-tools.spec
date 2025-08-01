@@ -1,10 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
+from glob import glob
+
+project_path = os.path.abspath('.')
 
 a = Analysis(
     ['data-processing-tools.py'],
-    pathex=[],
+    pathex=[project_path],
     binaries=[],
-    datas=[('./scripts', '.')],
+    datas=[(src, "scripts") for src in glob("scripts/*.py")],
     hiddenimports=[
         'pypdf',
         'fpdf',
