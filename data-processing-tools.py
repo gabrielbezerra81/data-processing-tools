@@ -18,10 +18,10 @@ path_input_width = 80
 
 packages = {
     "selenium": "selenium",
-    "bs4": "beautifulsoup4",
+    "beautifulsoup4": "bs4",
     "fpdf": "fpdf",
     "natsort": "natsort",
-    "pypdf": "PdfReader",
+    "pypdf": "pypdf",
 }
 
 

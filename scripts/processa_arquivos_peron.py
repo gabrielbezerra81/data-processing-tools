@@ -7,9 +7,10 @@ import time
 import sys
 from selenium.common.exceptions import NoSuchElementException
 from concurrent.futures import ThreadPoolExecutor
-from zip_tools import recursive_unzip_files
 import pathlib
 from typing import TypedDict, Literal
+from scripts.zip_tools import recursive_unzip_files
+
 
 # CONFIGURAÇÕES
 email = "gabriel.bezerra@mpce.mp.br"

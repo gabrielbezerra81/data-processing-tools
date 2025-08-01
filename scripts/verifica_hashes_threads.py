@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import argparse
 from pathlib import Path
 from typing import TypedDict, Literal
-from google_pdf_reader import read_google_hashes_pdf
+from scripts.google_pdf_reader import read_google_hashes_pdf
 
 successIcon = "✅"
 errorIcon = "❌"

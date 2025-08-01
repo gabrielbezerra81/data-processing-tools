@@ -4,10 +4,10 @@ import argparse
 import zipfile
 import time
 import shutil
-from zip_tools import recursive_delete_zips
 from typing import TypedDict
 from pathlib import Path
-from processa_arquivos_peron import process_files_peron
+from scripts.zip_tools import recursive_delete_zips
+from scripts.processa_arquivos_peron import process_files_peron
 
 
 class FolderRenameItem(TypedDict):
