@@ -1,10 +1,10 @@
-import os
 import subprocess
 from tkinter import filedialog, messagebox
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 import importlib.util
 import sys
+from pathlib import Path
 
 
 # COOKIE_FILE = "cookie.txt"
@@ -40,18 +40,6 @@ def check_install_packages(packages):
             print(f"[✓] '{module_name}' já está instalado.")
 
 
-# def carregar_cookie():
-#     if os.path.exists(COOKIE_FILE):
-#         with open(COOKIE_FILE, "r", encoding="utf-8") as f:
-#             return f.read().strip()
-#     return ""
-
-
-# def salvar_cookie(cookie):
-#     with open(COOKIE_FILE, "w", encoding="utf-8") as f:
-#         f.write(cookie.strip())
-
-
 def selecionar_pasta(entry_widget):
     pasta = filedialog.askdirectory()
     if pasta:
@@ -69,11 +57,10 @@ def selecionar_arquivo(entry_widget):
 def get_resource_path(filename):
     if hasattr(sys, "_MEIPASS"):
         # rodando no executável
-        return os.path.join(sys._MEIPASS, filename)
+        return Path(sys._MEIPASS).joinpath(filename).resolve()
     else:
         # Rodando como script.py
-        SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(SCRIPT_DIR, filename)
+        return Path(__file__).parent.joinpath(filename).resolve()
 
 
 class Janela(ttk.Window):
@@ -193,11 +180,11 @@ class Janela(ttk.Window):
 
     def executar_script_hashes(self):
         pasta = self.entry_pasta_hashes.get()
+        path = Path(pasta)
         # arquivo = entry_arquivo_hashes.get()
         # modo = tipo_verificacao.get()
 
-        # or not os.path.isfile(arquivo)
-        if not os.path.isdir(pasta):
+        if not path.is_dir():
             messagebox.showerror("Erro", "Verifique a pasta e o arquivo de hashes.")
             return
 
@@ -219,9 +206,10 @@ class Janela(ttk.Window):
 
     def executar_script_logs(self):
         pasta_raiz = self.entry_pasta_logs.get()
+        path = Path(pasta_raiz)
         # cookie = self.entry_cookie.get().strip()
 
-        if not os.path.isdir(pasta_raiz):
+        if not path.is_dir():
             messagebox.showerror("Erro", "Selecione uma pasta raiz válida.")
             return
 
@@ -255,8 +243,9 @@ class Janela(ttk.Window):
 
     def executar_script_criacao_modelo(self):
         pasta = self.entry_pasta_listagem.get()
+        path = Path(pasta)
 
-        if not os.path.isdir(pasta):
+        if not path.is_dir():
             messagebox.showerror("Erro", "Selecione uma pasta válida.")
             return
 
