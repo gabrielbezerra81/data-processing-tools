@@ -1,7 +1,7 @@
 import hashlib
 
 
-def calculate_sha256(file_path):
+def calculate_sha256(file_path: str):
     sha256 = hashlib.sha256()
     print(f"calculando hash para o arquivo: {file_path}...\n")
     try:

@@ -1,6 +1,5 @@
 import re
 from bs4 import BeautifulSoup
-import os
 import subprocess
 import argparse
 import sys
@@ -8,11 +7,27 @@ import zipfile
 import time
 import shutil
 from zip_tools import recursive_delete_zips
+from typing import TypedDict
+from pathlib import Path
 
-folders_to_rename = {}
+
+class FolderRenameItem(TypedDict):
+    path: Path
+    account_identifier: str
+    is_whats: bool
+    file_name: str
+    is_bilhetagem: bool
 
 
-def process_html_file(file_path):
+class FullFileName(TypedDict):
+    file_name: str
+    account_identifier: str
+
+
+folders_to_rename: dict[str, FolderRenameItem] = {}
+
+
+def process_html_file(file_path: Path):
     # Ler conteúdo do HTML
     html_content = ""
     with open(file_path, "r", encoding="utf-8") as f:
@@ -152,10 +167,12 @@ def process_html_file(file_path):
     )
 
 
-def generate_text_file_name(lines, html_file_path, date_hour):
+def generate_text_file_name(
+    lines: list[str], html_file_path: Path, date_hour: str
+) -> FullFileName:
     service = lines[1]
 
-    original_name = os.path.basename(html_file_path).replace(".html", "")
+    original_name = html_file_path.stem
     account_identifier = ""
 
     try:
@@ -173,50 +190,57 @@ def generate_text_file_name(lines, html_file_path, date_hour):
     return {"file_name": file_name, "account_identifier": account_identifier}
 
 
-def save_converted_text_file(*args):
+def save_converted_text_file(
+    html_file_path: Path,
+    file_name: str,
+    text_content: str,
+    account_identifier: str,
+    isWhats: bool,
+):
     global folders_to_rename
-    html_file_path, file_name, text_content, account_identifier, isWhats = args
 
-    old_path = os.path.dirname(html_file_path)
+    old_path = html_file_path.parent
+    old_path_str = str(old_path.resolve())
 
-    identifier_folder_name = old_path.replace(
-        os.path.basename(old_path), account_identifier
+    identifier_folder_name = (
+        old_path.joinpath("..").joinpath(account_identifier).resolve()
     )
 
-    folders_to_rename[old_path] = {
+    folders_to_rename[old_path_str] = {
         "path": identifier_folder_name,
         "account_identifier": account_identifier,
         "is_whats": isWhats,
         "file_name": file_name,
-        "is_bilhetagem": "Message Log" in text_content or "bilhetagem" in old_path,
+        "is_bilhetagem": "Message Log" in text_content or "bilhetagem" in old_path_str,
     }
 
-    text_file_path = os.path.join(old_path, file_name)
+    text_file_path = old_path.joinpath(file_name)
 
     with open(text_file_path, "w", encoding="utf-8") as file:
         file.write(text_content)
         print(f"Salvo: {text_file_path}")
 
 
-def process_zip_files(*, root_path):
-    root_dir_list = os.listdir(root_path)
+def process_zip_files(*, root_path: Path):
 
-    directories = []
+    directories: list[Path] = []
 
     try:
-        for file in root_dir_list:
-            is_zip = file.endswith(".zip")
+        for file in root_path.iterdir():
+            is_zip = file.name.endswith(".zip")
 
             if is_zip:
-                file_path = os.path.join(root_path, file)
-                destination_directory = file_path.replace(".zip", "")
+                file_path = str(file.resolve())
+                destination_directory = file.parent.joinpath(file.stem)
+                destination_directory.mkdir(exist_ok=True)
+
                 directories.append(destination_directory)
                 with zipfile.ZipFile(file_path, "r") as zip_ref:
-                    os.makedirs(destination_directory, exist_ok=True)
+
                     zip_ref.extractall(destination_directory)
 
         for dir in directories:
-            while not os.path.exists(dir):
+            while not dir.exists():
                 print("Esperando descompactar...")
                 time.sleep(2)
     except Exception as e:
@@ -237,45 +261,42 @@ def rename_folders():
                 file_name = (
                     folders_to_rename[old_path].get("file_name").replace(".txt", "")
                 )
-                base_dir = os.path.dirname(new_path)
-                new_path = os.path.join(base_dir, file_name)
+                new_path = new_path.parent.joinpath(file_name)
 
-            both_path_exists = os.path.exists(old_path) and os.path.exists(new_path)
+            both_path_exists = Path(old_path).exists() and new_path.exists()
 
             if both_path_exists and old_path != new_path:
                 shutil.copytree(old_path, new_path, dirs_exist_ok=True)
                 shutil.rmtree(old_path)
             else:
-                os.renames(old_path, new_path)
+                Path.rename(Path(old_path), new_path)
 
             if is_whats and not is_bilhetagem:
-                os.makedirs(os.path.join(new_path, "bilhetagem"), exist_ok=True)
+                bilhetagem_folder = new_path.joinpath("bilhetagem")
+                bilhetagem_folder.mkdir(exist_ok=True)
         except Exception as e:
             print(f"Erro ao renomear diretórios: {e}")
 
 
-def process_folders_in_path(root_path, level=0):
+def process_folders_in_path(root_path: str, level=0):
+    root = Path(root_path)
 
     # try to process zip files
     if level == 0:
-        process_zip_files(root_path=root_path)
-
-    root_dir_list = os.listdir(root_path)
+        process_zip_files(root_path=root)
 
     """
     Procura arquivos .html em subpastas 1 nível abaixo de raiz
     e executa salvar_html_como_txt para cada um.
     """
-    for folder in root_dir_list:
-        folder_path = os.path.join(root_path, folder)
-        if os.path.isdir(folder_path):
+    for item in root.iterdir():
+        if item.is_dir():
             # Para cada subpasta, listar arquivos .html
-            for file in os.listdir(folder_path):
-                if file.lower().endswith(".html"):
-                    html_path = os.path.join(folder_path, file)
-                    process_html_file(html_path)
-                if "bilhetagem" in file and level == 0:
-                    bilhetagem_path = os.path.join(folder_path, "bilhetagem")
+            for sub_item in item.iterdir():
+                if sub_item.name.endswith(".html"):
+                    process_html_file(sub_item.resolve())
+                if "bilhetagem" in str(sub_item.resolve()) and level == 0:
+                    bilhetagem_path = item.joinpath("bilhetagem")
                     process_zip_files(root_path=bilhetagem_path)
                     process_folders_in_path(bilhetagem_path, level=1)
 
@@ -300,10 +321,9 @@ def get_arguments():
 if __name__ == "__main__":
     args = get_arguments()
 
-    root_path = args.pasta_raiz
+    root_path: str = args.pasta_raiz
 
-    SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-    peron_script_path = os.path.join(SCRIPT_DIR, "processa-arquivos-peron.py")
+    peron_script_path = Path(__file__).parent.joinpath("processa-arquivos-peron.py")
 
     process_folders_in_path(root_path)
     recursive_delete_zips(root_path)

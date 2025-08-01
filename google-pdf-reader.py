@@ -3,16 +3,16 @@ import argparse
 import pathlib
 
 
-pdf_parts = []
+pdf_parts: list[str] = []
 
 page_y = {"page_zero_y": 550, "all_pages_y": 660}
 
 current_page_y = page_y["page_zero_y"]
 
 
-def pdf_visitor_body(text, cm, tm, font_dict, font_size):
+def pdf_visitor_body(text: str, cm, tm, font_dict, font_size):
     global current_page_y
-    y = cm[5]
+    y: float = cm[5]
 
     if 50 < y < current_page_y:
         if text == "":
@@ -21,7 +21,7 @@ def pdf_visitor_body(text, cm, tm, font_dict, font_size):
         pdf_parts.append(text)
 
 
-def read_google_hashes_pdf(pdf_path):
+def read_google_hashes_pdf(pdf_path: str):
 
     global current_page_y
 
@@ -52,5 +52,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    pdf_path = args.arquivo_pdf
+    pdf_path: str = args.arquivo_pdf
     read_google_hashes_pdf(pdf_path)

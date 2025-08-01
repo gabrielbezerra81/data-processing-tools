@@ -2,9 +2,11 @@ import pathlib
 import zipfile
 
 
-def recursive_create_zip_list(root_path):
+def recursive_create_zip_list(root_path: str):
+    files: list[str] = []
+
     try:
-        files = []
+
         path = pathlib.Path(root_path)
 
         for item in path.rglob("*"):
@@ -16,10 +18,10 @@ def recursive_create_zip_list(root_path):
 
     except Exception as e:
         print(f"create zip list error {e}")
-        return []
+        return files
 
 
-def recursive_delete_zips(root_path):
+def recursive_delete_zips(root_path: str):
     files = recursive_create_zip_list(root_path)
     print(f"deletando {len(files)} arquivos zip")
 
@@ -32,7 +34,7 @@ def recursive_delete_zips(root_path):
             print(f"delete file error {e}")
 
 
-def recursive_unzip_files(root_path):
+def recursive_unzip_files(root_path: str):
     files = recursive_create_zip_list(root_path)
     print(f"descompactando {len(files)} arquivos zips")
 
