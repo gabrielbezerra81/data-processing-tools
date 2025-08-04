@@ -5,22 +5,31 @@ import argparse
 def create_hashes_file(folder_path: str):
     current_path = pathlib.Path(folder_path)
 
+    files = []
+
     zip_files = [file.name for file in current_path.glob("*.zip")]
+    files.extend(zip_files)
 
-    for index in range(len(zip_files)):
+    exclude = {"relatorio_hashes.pdf"}
+    pdf_files = [
+        file.name for file in current_path.glob("*.pdf") if file.name not in exclude
+    ]
+    files.extend(pdf_files)
 
-        if (index + 1) != len(zip_files):
-            zip_files[index] += "-hash\n"
+    for index in range(len(files)):
+
+        if (index + 1) != len(files):
+            files[index] += ":hash\n"
         else:
-            zip_files[index] += "-hash"
+            files[index] += ":hash"
 
     textfile_path = current_path.joinpath("hashes.txt")
 
     with open(textfile_path, "wt") as file:
         file.seek(0)
         file.truncate()
-        file.writelines(zip_files)
-        print(f"{len(zip_files)} arquivos foram encontrados e salvos em hashes.txt")
+        file.writelines(files)
+        print(f"{len(files)} arquivos foram encontrados e salvos em hashes.txt")
 
 
 if __name__ == "__main__":
