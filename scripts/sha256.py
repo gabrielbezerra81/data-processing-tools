@@ -13,6 +13,9 @@ def calculate_sha256(file_path: str):
         return None
 
 
+original_hash = "52b7b5e3873a679991e979e8fc9766376aedc42a373fdae21b75bd4e0b598a78"
+
+
 if __name__ == "__main__":
     import sys
 
@@ -22,4 +25,8 @@ if __name__ == "__main__":
 
     path = sys.argv[1]
 
-    print(f"SHA256: {calculate_sha256(path)}")
+    calculated = calculate_sha256(path)
+
+    is_equal = "Sim" if calculated == original_hash else "Não"
+
+    print(f"hashes iguais? {is_equal}")
