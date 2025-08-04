@@ -186,7 +186,7 @@ def create_google_hashes_file(text_file: Path):
             return
 
         text = text.replace("\n", "")
-        text = text.replace(":", "-")
+        # text = text.replace(":", "-")
         text = text.replace(" ", "")
 
         lines = text.split("SHA512-")
@@ -228,11 +228,11 @@ def create_hashes_dict_from_csv(csv_file: Path):
 def create_hashes_dict_from_txt(txt_file: Path, isSha512: bool):
     hashes_dict: dict[str, str | None] = {}
 
-    with open(txt_file, "tr") as file:
+    with open(txt_file, "tr", encoding="utf-8") as file:
         lines = file.readlines()
 
         for line in lines:
-            splitted = line.replace(" ", "").split("-")
+            splitted = line.replace(" ", "").split(":")
             file_name = splitted[0]
             original_hash = (
                 Hasher.extract_sha512(line) if isSha512 else Hasher.extract_sha256(line)
@@ -289,6 +289,8 @@ def create_files_list(files_folder_path: Path, level: int):
             hashes_path = item
         elif google_pdf_filename in item.name and item.name.endswith(".pdf"):
             hashes_path = item
+        elif item.name.endswith(".pdf") and "relatorio_hashes" not in item.name:
+            folder_files.append(item)
 
         folder_files.extend(subfolder_files)
 
@@ -303,7 +305,8 @@ def process_file(args: tuple[Path, Path, dict[str, str], bool]):
     file_path = file.resolve()
 
     try:
-        original_hash = hashes_dict.get(file_name, None)
+        file_name_in_dict = file_name.replace(" ", "")
+        original_hash = hashes_dict.get(file_name_in_dict, None)
         generated_hash = Hasher.generate_file_hash(file_path, is_google_hashes)
         has_collision = original_hash != generated_hash
 
