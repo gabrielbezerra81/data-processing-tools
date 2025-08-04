@@ -85,6 +85,13 @@ class Reporter(ABC):
     pdf_sections: list[PDFSection] = []
 
     @classmethod
+    def clear_reporter(self):
+        Reporter.collisions = 0
+        Reporter.verified_files = 0
+        Reporter.hashes_count = 0
+        Reporter.pdf_sections = []
+
+    @classmethod
     def configure_pdf(self):
         Reporter.pdf.add_page()
         Reporter.pdf.set_font("Arial", size=12)
@@ -168,6 +175,7 @@ class Reporter(ABC):
         path = folder_path.joinpath(file_name)
 
         Reporter.pdf.output(path.resolve())
+        Reporter.clear_reporter()
 
 
 def check_if_google_file(text_file: Path):
