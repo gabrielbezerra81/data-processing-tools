@@ -25,7 +25,7 @@ def create_hashes_file(folder_path: str):
 
     textfile_path = current_path.joinpath("hashes.txt")
 
-    with open(textfile_path, "wt") as file:
+    with open(textfile_path, "wt", encoding="utf-8") as file:
         file.seek(0)
         file.truncate()
         file.writelines(files)
