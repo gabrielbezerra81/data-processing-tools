@@ -90,6 +90,7 @@ class Reporter(ABC):
         Reporter.verified_files = 0
         Reporter.hashes_count = 0
         Reporter.pdf_sections = []
+        Reporter.pdf = FPDF()
 
     @classmethod
     def configure_pdf(self):
