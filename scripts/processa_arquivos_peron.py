@@ -6,10 +6,10 @@ from selenium.webdriver.support import expected_conditions
 import time
 import sys
 from selenium.common.exceptions import NoSuchElementException
-from concurrent.futures import ThreadPoolExecutor
 import pathlib
 from typing import TypedDict, Literal
 from scripts.zip_tools import recursive_unzip_files
+from concurrent.futures import ThreadPoolExecutor
 
 
 # CONFIGURAÇÕES
@@ -20,7 +20,6 @@ URL_LOGIN = "https://policia.mperon.org/auth/login"
 URL_BASE = "https://policia.mperon.org/"
 URL_LOG = f"{URL_BASE}/extractor/access_log"
 URL_EXTRACTOR = f"{URL_BASE}/extractor/whatsapp"
-max_workers = 3
 SESSION_COOKIES = []
 FILE_WAIT_TIME = {2000: 7, 3000: 9, 4000: 10, 5000: 12}
 BILHETAGEM_KEYWORDS = ["Message Log", "Call Log", "Call Logs"]
@@ -181,19 +180,20 @@ def process_file(args: tuple[int, FileItem, str, int]):
         time.sleep(wait_time)
 
         print("🎉 Todos os arquivos foram processados.")
-        driver.quit()
     except NoSuchElementException as e:
         print("ERRO_COOKIE_INVALIDO")
-        driver.quit()
         sys.exit(2)
 
     except Exception as e:
         print(f"Outro ferramenta Peron: {e}")
-        driver.quit()
+    finally:
+        if driver:
+            driver.quit()
 
 
 def process_all_files(files: list[FileItem], cookie: str):
     # LOOP PARA ENVIAR CADA ARQUIVO
+    max_workers = 3
 
     args = [(idx, file, cookie, len(files)) for idx, file in enumerate(files, start=1)]
 
