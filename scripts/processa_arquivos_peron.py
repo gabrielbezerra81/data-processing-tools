@@ -10,6 +10,7 @@ import pathlib
 from typing import TypedDict, Literal
 from scripts.zip_tools import recursive_unzip_files
 from concurrent.futures import ThreadPoolExecutor
+import threading
 
 
 # CONFIGURAÇÕES
@@ -23,6 +24,10 @@ URL_EXTRACTOR = f"{URL_BASE}/extractor/whatsapp"
 SESSION_COOKIES = []
 FILE_WAIT_TIME = {2000: 7, 3000: 9, 4000: 10, 5000: 12}
 BILHETAGEM_KEYWORDS = ["Message Log", "Call Log", "Call Logs"]
+
+MAX_WORKERS = 3
+
+semaphore = threading.Semaphore(MAX_WORKERS)
 
 
 email_id = "inputEmail"
@@ -139,65 +144,67 @@ def process_file(args: tuple[int, FileItem, str, int]):
     file = file_info.get("path")
     file_type = file_info.get("type")
 
-    obj = create_webdriver(file, cookie)
-    driver = obj["driver"]
-    wait = obj["wait"]
+    driver: WebDriver | None = None
 
-    try:
-        if file_type == "log":
-            driver.get(URL_LOG)
-        elif file_type == "bilhetagem":
-            driver.get(URL_EXTRACTOR)
+    with semaphore:
+        try:
 
-        print(f"📄 Enviando arquivo {idx}/{total}: {file}📄")
+            obj = create_webdriver(file, cookie)
+            driver = obj["driver"]
+            wait = obj["wait"]
+            if file_type == "log":
+                driver.get(URL_LOG)
+            elif file_type == "bilhetagem":
+                driver.get(URL_EXTRACTOR)
 
-        print(file)
+            print(f"📄 Enviando arquivo {idx}/{total}: {file}📄")
 
-        # CLICA NA ABA "Carregar arquivo"
-        tabFile = driver.find_element(By.CSS_SELECTOR, 'a[href="#tabFile"]')
+            print(file)
 
-        tabFile.click()
-        time.sleep(1)
+            # CLICA NA ABA "Carregar arquivo"
+            tabFile = driver.find_element(By.CSS_SELECTOR, 'a[href="#tabFile"]')
 
-        # AGUARDA O INPUT ESTAR VISÍVEL
-        file_input = driver.find_element(By.ID, "import_file")
+            tabFile.click()
+            time.sleep(1)
 
-        # ENVIA O ARQUIVO
-        file_input.send_keys(file)
-        time.sleep(1)
+            # AGUARDA O INPUT ESTAR VISÍVEL
+            file_input = driver.find_element(By.ID, "import_file")
 
-        # CLICA EM "ENVIAR"
-        submit_button = wait.until(
-            expected_conditions.element_to_be_clickable((By.ID, "submit_form"))
-        )
-        submit_button.click()
+            # ENVIA O ARQUIVO
+            file_input.send_keys(file)
+            time.sleep(1)
 
-        print("✅ Arquivo enviado.")
+            # CLICA EM "ENVIAR"
+            submit_button = wait.until(
+                expected_conditions.element_to_be_clickable((By.ID, "submit_form"))
+            )
+            submit_button.click()
 
-        wait_time = get_file_wait_by_size(file)
+            print("✅ Arquivo enviado.")
 
-        # AGUARDA RESPOSTA OU PROCESSAMENTO
-        time.sleep(wait_time)
+            wait_time = get_file_wait_by_size(file)
 
-        print("🎉 Todos os arquivos foram processados.")
-    except NoSuchElementException as e:
-        print("ERRO_COOKIE_INVALIDO")
-        sys.exit(2)
+            # AGUARDA RESPOSTA OU PROCESSAMENTO
+            time.sleep(wait_time)
 
-    except Exception as e:
-        print(f"Outro ferramenta Peron: {e}")
-    finally:
-        if driver:
-            driver.quit()
+            print("🎉 Todos os arquivos foram processados.")
+        except NoSuchElementException as e:
+            print("ERRO_COOKIE_INVALIDO")
+            sys.exit(2)
+
+        except Exception as e:
+            print(f"Outro ferramenta Peron: {e}")
+        finally:
+            if driver:
+                driver.quit()
 
 
 def process_all_files(files: list[FileItem], cookie: str):
     # LOOP PARA ENVIAR CADA ARQUIVO
-    max_workers = 3
 
     args = [(idx, file, cookie, len(files)) for idx, file in enumerate(files, start=1)]
 
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         executor.map(process_file, args)
 
 
