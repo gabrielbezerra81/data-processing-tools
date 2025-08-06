@@ -268,7 +268,7 @@ class Janela(ttk.Window):
 
         try:
             create_hashes_file(pasta)
-            messagebox.showinfo("Sucesso", "Arquivo hashes-modelo.txt gerado.")
+            messagebox.showinfo("Sucesso", "O arquivo hashes.txt foi criado.")
         except subprocess.CalledProcessError as e:
             messagebox.showerror("Erro", f"Erro ao executar script:\n{e}")
 
