@@ -9,6 +9,7 @@ from pathlib import Path
 from scripts.verifica_hashes_threads import verify_hashes
 from scripts.processa_meta_whats_logs import process_logs_extractions
 from scripts.create_hashes_model_file import create_hashes_file
+from scripts.hasher import Hasher
 
 
 # COOKIE_FILE = "cookie.txt"
@@ -102,27 +103,30 @@ class Janela(ttk.Window):
             **kwargs,
         )
         self.title("Ferramentas de Processamento")
-        self.centralizar_janela(680, 460)
+        self.centralizar_janela(740, 460)
         self.configura_abas()
         self.configura_aba1()
         self.configura_aba2()
         self.configura_aba3()
+        self.configura_aba4()
 
     def configura_abas(self):
         self.abas = ttk.Notebook(self)
         self.aba1 = ttk.Frame(self.abas)
         self.aba2 = ttk.Frame(self.abas)
         self.aba3 = ttk.Frame(self.abas)
+        self.aba4 = ttk.Frame(self.abas)
         self.abas.add(self.aba1, text="1. Verificação de Hashes")
         self.abas.add(self.aba2, text="2. Processamento de Logs")
         self.abas.add(self.aba3, text="3. Gerar modelo hashes.txt (Listar Arquivos)")
+        self.abas.add(self.aba4, text="4. Comparar hash de um arquivo")
         self.abas.pack(expand=1, fill="both")
 
     def configura_aba1(self):
         # === Aba 1: Verificação de Hashes ===
         ttk.Label(
             self.aba1,
-            text="Pasta com arquivos (.zip ou .gpg) e arquivo de hashes (.txt, .csv ou .pdf):",
+            text="Pasta com arquivos (.zip, .gpg ou pdf) e arquivo de hashes (.txt, .csv ou .pdf):",
         ).pack(pady=(10, 0))
         self.entry_pasta_hashes = ttk.Entry(self.aba1, width=path_input_width)
         self.entry_pasta_hashes.pack(pady=(3, 10))
@@ -160,7 +164,7 @@ class Janela(ttk.Window):
 
     def configura_aba3(self):
         # === Aba 3: Listagem de Arquivos ===
-        ttk.Label(self.aba3, text="Pasta com arquivos ZIP:").pack(pady=(10, 0))
+        ttk.Label(self.aba3, text="Pasta com arquivos ZIP ou PDF:").pack(pady=(10, 0))
         self.entry_pasta_listagem = ttk.Entry(self.aba3, width=path_input_width)
         self.entry_pasta_listagem.pack(pady=(3, 10))
         ttk.Button(
@@ -172,6 +176,32 @@ class Janela(ttk.Window):
             self.aba3,
             text="Gerar modelo hashes.txt",
             command=self.executar_script_criacao_modelo,
+        ).pack(pady=20)
+
+    def configura_aba4(self):
+        ttk.Label(self.aba4, text="Caminho do arquivo:").pack(pady=(10, 0))
+        self.entry_pasta_gerar_hash = ttk.Entry(self.aba4, width=path_input_width)
+        self.entry_pasta_gerar_hash.pack(pady=(3, 10))
+        ttk.Button(
+            self.aba4,
+            text="Selecionar arquivo",
+            command=lambda: selecionar_arquivo(self.entry_pasta_gerar_hash),
+        ).pack()
+
+        self.hash_type = ttk.StringVar()
+        ttk.Label(self.aba4, text="Tipo da hash:").pack(pady=(10, 0))
+        self.hash_box = ttk.Combobox(self.aba4, textvariable=self.hash_type)
+        self.hash_box["values"] = ("SHA256", "SHA512")
+        self.hash_box.state(["readonly"])
+        self.hash_box.set("SHA256")
+        self.hash_box.pack(pady=(3, 10))
+
+        ttk.Label(self.aba4, text="Hash original:").pack(pady=(10, 0))
+        self.entry_original_hash = ttk.Entry(self.aba4, width=path_input_width)
+        self.entry_original_hash.pack(pady=(3, 10))
+
+        ttk.Button(
+            self.aba4, text="Comparar hash", command=self.comparate_single_file_hash
         ).pack(pady=20)
 
     def centralizar_janela(self, largura, altura):
@@ -238,6 +268,46 @@ class Janela(ttk.Window):
             messagebox.showinfo("Sucesso", "Arquivo hashes-modelo.txt gerado.")
         except subprocess.CalledProcessError as e:
             messagebox.showerror("Erro", f"Erro ao executar script:\n{e}")
+
+    def comparate_single_file_hash(self):
+        file = self.entry_pasta_gerar_hash.get()
+        is_file_valid = self.validate_file(file)
+        hash_type = self.hash_box.get()
+
+        original_hash = self.entry_original_hash.get()
+
+        if not is_file_valid:
+            return
+
+        if not original_hash:
+            messagebox.showerror("Erro", "Preencha a hash original para comparar")
+            return
+
+        try:
+            result = Hasher.hash_comparator(file, original_hash, hash_func=hash_type)
+
+            if result.get("success"):
+                messagebox.showinfo(
+                    "Sucesso",
+                    result.get("message"),
+                )
+            else:
+                messagebox.showerror("Erro", result.get("message"))
+        except Exception as e:
+            messagebox.showerror("Erro", f"Erro ao executar script:\n{e}")
+
+    def validate_file(self, file):
+        file_path = Path(file)
+
+        if not file_path.exists():
+            messagebox.showerror("Erro", "O arquivo não existe ou é inválido")
+            return False
+
+        if file_path.is_dir():
+            messagebox.showerror("Erro", "Selecione um arquivo, não um diretório")
+            return False
+
+        return True
 
 
 def is_frozen():
