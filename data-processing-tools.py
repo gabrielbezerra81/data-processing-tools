@@ -224,7 +224,10 @@ class Janela(ttk.Window):
 
         try:
             verify_hashes(str(path.resolve()))
-            messagebox.showinfo("Sucesso", "Verificação de hashes concluída.")
+            messagebox.showinfo(
+                "Sucesso",
+                "Verificação de hashes concluída.\n\nFoi criado um relatório em pdf na mesma pasta.",
+            )
         except subprocess.CalledProcessError as e:
             messagebox.showerror("Erro", f"Erro ao executar script:\n{e}")
 
