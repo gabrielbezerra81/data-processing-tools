@@ -27,6 +27,8 @@ BILHETAGEM_KEYWORDS = ["Message Log", "Call Log", "Call Logs"]
 
 MAX_WORKERS = 3
 
+MAX_WAIT_RETRIES = 2
+
 semaphore = threading.Semaphore(MAX_WORKERS)
 
 
@@ -186,6 +188,20 @@ def process_file(args: tuple[int, FileItem, str, int]):
 
             # AGUARDA RESPOSTA OU PROCESSAMENTO
             time.sleep(wait_time)
+
+            WAIT_RETRIES = 0
+
+            while len(list(pathlib.Path(file).parent.glob("*.crdownload"))) > 0:
+                if WAIT_RETRIES == MAX_WAIT_RETRIES:
+                    print("o arquivo continua baixando, o tempo expirou...")
+                    break
+
+                WAIT_RETRIES += 1
+
+                print(
+                    f"esperando arquivo baixar, esperando mais {wait_time} segundos..."
+                )
+                time.sleep(wait_time)
 
             print("🎉 Todos os arquivos foram processados.")
         except NoSuchElementException as e:
