@@ -292,7 +292,10 @@ def process_folders_in_path(root_path: str, level=0):
         if item.is_dir():
             # Para cada subpasta, listar arquivos .html
             for sub_item in item.iterdir():
-                if sub_item.name.endswith(".html"):
+                if (
+                    sub_item.name.endswith(".html")
+                    and "preservation" not in sub_item.name
+                ):
                     process_html_file(sub_item.resolve())
                 if "bilhetagem" in str(sub_item.resolve()) and level == 0:
                     bilhetagem_path = item.joinpath("bilhetagem")
