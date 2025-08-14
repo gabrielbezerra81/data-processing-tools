@@ -21,6 +21,7 @@ class FolderRenameItem(TypedDict):
 class FullFileName(TypedDict):
     file_name: str
     account_identifier: str
+    date_hour: str
 
 
 folders_to_rename: dict[str, FolderRenameItem] = {}
@@ -33,7 +34,7 @@ def process_html_file(file_path: Path):
         html_content = f.read()
 
     isMeta = False
-    isWhats = False
+    is_whats = False
 
     # Extrair data do campo "Generated"
     date_pattern = r">(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) UTC<"
@@ -71,7 +72,7 @@ def process_html_file(file_path: Path):
 
     lines = lines[start:]
 
-    isWhats = "WhatsApp" in lines[1]
+    is_whats = "WhatsApp" in lines[1]
     isMeta = "Facebook" in lines[1] or "Instagram" in lines[1]
 
     # Cabeçalhos que ficam sempre sozinhos
@@ -158,11 +159,11 @@ def process_html_file(file_path: Path):
 
     file_info = generate_text_file_name(lines, file_path, date_hour)
 
-    file_name = file_info.get("file_name")
-    account_identifier = file_info.get("account_identifier")
-
     save_converted_text_file(
-        file_path, file_name, text_content, account_identifier, isWhats
+        html_file_path=file_path,
+        file_info=file_info,
+        text_content=text_content,
+        is_whats=is_whats,
     )
 
 
@@ -186,17 +187,53 @@ def generate_text_file_name(
 
     file_name = f"{date_hour_formatted} {original_name} {service}.txt"
 
-    return {"file_name": file_name, "account_identifier": account_identifier}
+    return {
+        "file_name": file_name,
+        "account_identifier": account_identifier,
+        "date_hour": date_hour_formatted,
+    }
+
+
+def resolve_textfile_path(file_info: FullFileName, old_path: Path, is_whats: bool):
+    file_name = file_info.get("file_name")
+
+    if is_whats:
+        sub_folder = old_path
+    else:
+        # create sub_folder inside identifier folder to prevent overwrite of meta files with
+        # identical identifier and dates
+        date_hour = file_info.get("date_hour")
+
+        sub_folder = old_path.joinpath(f"{date_hour}-{old_path.name}")
+        sub_folder.mkdir(exist_ok=True)
+
+        # copy files from original extracted folder to new sub_folder
+        for file in old_path.glob("*"):
+            if file.name != sub_folder.name:
+
+                if file.is_dir():
+                    shutil.copytree(file, sub_folder.joinpath(file.name))
+                    shutil.rmtree(file)
+                else:
+                    shutil.copy(file, sub_folder)
+                    file.unlink()
+
+    text_file_path = sub_folder.joinpath(file_name)
+
+    return text_file_path
 
 
 def save_converted_text_file(
+    *,
     html_file_path: Path,
-    file_name: str,
+    file_info: FullFileName,
     text_content: str,
-    account_identifier: str,
-    isWhats: bool,
+    is_whats: bool,
 ):
     global folders_to_rename
+
+    file_name = file_info.get("file_name")
+    account_identifier = file_info.get("account_identifier")
 
     old_path = html_file_path.parent
     old_path_str = str(old_path.resolve())
@@ -205,15 +242,17 @@ def save_converted_text_file(
         old_path.joinpath("..").joinpath(account_identifier).resolve()
     )
 
+    is_bilhetagem = "Message Log" in text_content or "bilhetagem" in old_path_str
+
     folders_to_rename[old_path_str] = {
         "path": identifier_folder_name,
         "account_identifier": account_identifier,
-        "is_whats": isWhats,
+        "is_whats": is_whats,
         "file_name": file_name,
-        "is_bilhetagem": "Message Log" in text_content or "bilhetagem" in old_path_str,
+        "is_bilhetagem": is_bilhetagem,
     }
 
-    text_file_path = old_path.joinpath(file_name)
+    text_file_path = resolve_textfile_path(file_info, old_path, is_whats)
 
     with open(text_file_path, "w", encoding="utf-8") as file:
         file.write(text_content)
@@ -292,9 +331,8 @@ def process_folders_in_path(root_path: str, level=0):
         if item.is_dir():
             # Para cada subpasta, listar arquivos .html
             for sub_item in item.iterdir():
-                if (
-                    sub_item.name.endswith(".html")
-                    and "preservation" not in sub_item.name
+                if "preservation" not in sub_item.name and sub_item.name.endswith(
+                    ".html"
                 ):
                     process_html_file(sub_item.resolve())
                 if "bilhetagem" in str(sub_item.resolve()) and level == 0:
