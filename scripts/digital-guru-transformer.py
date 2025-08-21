@@ -3,6 +3,7 @@ import json
 from typing import TypedDict, Literal
 from datetime import datetime, timezone
 import argparse
+from scripts.processa_arquivos_peron import process_files_peron
 
 
 class Infrastructure(TypedDict):
@@ -35,6 +36,10 @@ CSV_HEADER = "Timestamp (UTC),Latitude,Longitude,Country Codes,Display Radius (M
 def create_user_data(path: str):
     file_path = Path(path)
 
+    save_folder = file_path.parent.joinpath("arquivos guru")
+
+    save_folder.mkdir(exist_ok=True)
+
     with open(file_path, "r+") as file:
         content: list[GuruEvent] = json.load(file)
 
@@ -50,14 +55,16 @@ def create_user_data(path: str):
             log = users_accesslogs[user]
             geoloc = users_geoloc[user]
 
-            log_new_path = file_path.parent.joinpath(f"access-log-{user}.txt")
-            geoloc_new_path = file_path.parent.joinpath(f"geolocation-{user}.csv")
+            log_new_path = save_folder.joinpath(f"access-log-{user}.txt")
+            geoloc_new_path = save_folder.joinpath(f"geolocation-{user}.csv")
 
             with open(log_new_path, "wt+") as log_file:
                 log_file.write(log)
 
             with open(geoloc_new_path, "wt+") as geoloc_file:
                 geoloc_file.write(geoloc)
+
+    process_files_peron(str(save_folder.resolve()))
 
 
 def create_acesslog_entry(event: GuruEvent, users_accesslogs: dict[str, str]):
