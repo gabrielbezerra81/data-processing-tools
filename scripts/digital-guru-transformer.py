@@ -33,7 +33,7 @@ class GuruEvent(TypedDict):
 CSV_HEADER = "Timestamp (UTC),Latitude,Longitude,Country Codes,Display Radius (Meters),Source,Device Tag,Platform"
 
 
-def create_user_data(path: str):
+def process_guru(path: str):
     file_path = Path(path)
 
     save_folder = file_path.parent.joinpath("arquivos guru")
@@ -111,4 +111,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    create_user_data(args.arquivo)
+    process_guru(args.arquivo)
