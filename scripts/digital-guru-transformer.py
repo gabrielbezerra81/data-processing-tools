@@ -36,7 +36,7 @@ CSV_HEADER = "Timestamp (UTC),Latitude,Longitude,Country Codes,Display Radius (M
 def process_guru(path: str):
     file_path = Path(path)
 
-    save_folder = file_path.parent.joinpath("arquivos guru")
+    save_folder = file_path.parent.joinpath("processamentos guru")
 
     save_folder.mkdir(exist_ok=True)
 
