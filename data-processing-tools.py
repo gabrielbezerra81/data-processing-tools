@@ -230,11 +230,13 @@ class Janela(ttk.Window):
 
         self.frames_tab5: dict[str, ttk.Frame] = {}
 
-        self.tab5_display_components("")
+        self.tab5_display_components()
 
-        self.provider_box.bind("<<ComboboxSelected>>", self.tab5_display_components)
+        self.provider_box.bind(
+            "<<ComboboxSelected>>", lambda _: self.tab5_display_components()
+        )
 
-    def tab5_display_components(self, _):
+    def tab5_display_components(self):
         provider_type = self.provider_box.get()
 
         frame = self.frames_tab5.get(provider_type)
