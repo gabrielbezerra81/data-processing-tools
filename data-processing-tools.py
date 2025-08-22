@@ -228,22 +228,44 @@ class Janela(ttk.Window):
         self.provider_box.set(values[0])
         self.provider_box.pack(pady=PADYS["input_to_label"])
 
-        # if self.provider_type == "":
-        ttk.Label(self.tab5, text="Caminho do arquivo .json:").pack(
-            pady=PADYS["label_to_top"]
-        )
-        self.entry_file_tab5 = ttk.Entry(self.tab5, width=path_input_width)
-        self.entry_file_tab5.pack(pady=PADYS["input_to_label"])
+        self.frames_tab5: dict[str, ttk.Frame] = {}
 
-        ttk.Button(
-            self.tab5,
-            text="Selecionar arquivo",
-            command=lambda: selecionar_arquivo(self.entry_file_tab5),
-        ).pack()
+        self.tab5_display_components("")
 
-        ttk.Button(self.tab5, text="Processar", command=self.execute_tab5).pack(
-            pady=PADYS["execute_button"]
-        )
+        self.provider_box.bind("<<ComboboxSelected>>", self.tab5_display_components)
+
+    def tab5_display_components(self, _):
+        provider_type = self.provider_box.get()
+
+        frame = self.frames_tab5.get(provider_type)
+
+        if not frame:
+            frame = ttk.Frame(self.tab5)
+
+            if provider_type == PROVIDER_TYPES_DICT["Digital Manager Guru"]:
+                ttk.Label(frame, text="Caminho do arquivo .json:").pack(
+                    pady=PADYS["label_to_top"]
+                )
+                self.entry_file_tab5 = ttk.Entry(frame, width=path_input_width)
+                self.entry_file_tab5.pack(pady=PADYS["input_to_label"])
+
+                ttk.Button(
+                    frame,
+                    text="Selecionar arquivo",
+                    command=lambda: selecionar_arquivo(self.entry_file_tab5),
+                ).pack()
+
+            # common widgets
+            ttk.Button(frame, text="Processar", command=self.execute_tab5).pack(
+                pady=PADYS["execute_button"]
+            )
+
+        self.frames_tab5[provider_type] = frame
+
+        for fram in self.frames_tab5.values():
+            fram.pack_forget()
+
+        self.frames_tab5[provider_type].pack()
 
     def centralize_window(self, width, height):
         self.update_idletasks()
@@ -358,7 +380,7 @@ class Janela(ttk.Window):
                 if not is_json:
                     return
 
-                # process_guru(path.resolve())
+                process_guru(path.resolve())
 
                 messagebox.showinfo(
                     "Sucesso",
