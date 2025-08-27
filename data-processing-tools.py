@@ -11,6 +11,7 @@ from scripts.processa_meta_whats_logs import process_logs_extractions
 from scripts.create_hashes_model_file import create_hashes_file
 from scripts.hasher import Hasher
 from scripts.digital_guru_transformer import process_guru
+from scripts.cartpanda_transformer import process_cartpanda
 
 
 # COOKIE_FILE = "cookie.txt"
@@ -24,11 +25,15 @@ packages = {
     "fpdf": "fpdf",
     "natsort": "natsort",
     "pypdf": "pypdf",
+    "openpyxl": "openpyxl",
 }
 
 PADYS = {"input_to_label": (3, 10), "label_to_top": (10, 0), "execute_button": 20}
 
-PROVIDER_TYPES_DICT = {"Digital Manager Guru": "Digital Manager Guru"}
+PROVIDER_TYPES_DICT = {
+    "Digital Manager Guru": "Digital Manager Guru",
+    "Cartpanda": "Cartpanda",
+}
 
 
 def check_install_packages(packages):
@@ -256,6 +261,18 @@ class Janela(ttk.Window):
                     text="Selecionar arquivo",
                     command=lambda: selecionar_arquivo(self.entry_file_tab5),
                 ).pack()
+            elif provider_type == PROVIDER_TYPES_DICT["Cartpanda"]:
+                ttk.Label(frame, text="Caminho do arquivo .xlsx:").pack(
+                    pady=PADYS["label_to_top"]
+                )
+                self.entry_file_tab5 = ttk.Entry(frame, width=path_input_width)
+                self.entry_file_tab5.pack(pady=PADYS["input_to_label"])
+
+                ttk.Button(
+                    frame,
+                    text="Selecionar arquivo",
+                    command=lambda: selecionar_arquivo(self.entry_file_tab5),
+                ).pack()
 
             # common widgets
             ttk.Button(frame, text="Processar", command=self.execute_tab5).pack(
@@ -377,17 +394,29 @@ class Janela(ttk.Window):
                 if not is_file_valid:
                     return
 
-                is_json = self.validate_is_json(path.resolve())
+                is_json = self.validate_file_extension(path.resolve(), ".json")
 
                 if not is_json:
                     return
 
                 process_guru(path.resolve())
 
-                messagebox.showinfo(
-                    "Sucesso",
-                    "Os arquivo processados foram salvo na pasta 'processamentos guru'",
-                )
+            case value if value == PROVIDER_TYPES_DICT["Cartpanda"]:
+                is_file_valid = self.validate_file(file)
+
+                if not is_file_valid:
+                    return
+
+                is_xlsx = self.validate_file_extension(path.resolve(), ".xlsx")
+                if not is_xlsx:
+                    return
+
+                process_cartpanda(path.resolve())
+
+        messagebox.showinfo(
+            "Sucesso",
+            "Os arquivo processados foram salvo na pasta 'processamentos guru'",
+        )
 
     def validate_file(self, file):
         file_path = Path(file)
@@ -402,11 +431,11 @@ class Janela(ttk.Window):
 
         return True
 
-    def validate_is_json(self, file: str):
+    def validate_file_extension(self, file: str, extension: str):
         file_path = Path(file)
 
-        if file_path.suffix != ".json":
-            messagebox.showerror("Erro", "O arquivo selecionado não é um .json")
+        if file_path.suffix != extension:
+            messagebox.showerror("Erro", "O arquivo selecionado não é um {extension}")
             return False
 
         return True
