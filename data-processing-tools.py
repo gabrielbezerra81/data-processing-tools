@@ -250,6 +250,11 @@ class Janela(ttk.Window):
             frame = ttk.Frame(self.tab5)
 
             if current_provider == PROVIDER_TYPES_DICT["Digital Manager Guru"]:
+                ttk.Label(
+                    frame,
+                    text="Serão gerados arquivos contendo as geocoordenadas e os logs de acesso",
+                ).pack(pady=PADYS["label_to_top"])
+
                 ttk.Label(frame, text="Caminho do arquivo .json:").pack(
                     pady=PADYS["label_to_top"]
                 )
@@ -262,6 +267,11 @@ class Janela(ttk.Window):
                     command=lambda: selecionar_arquivo(self.entry_file_tab5),
                 ).pack()
             elif current_provider == PROVIDER_TYPES_DICT["Cartpanda"]:
+                ttk.Label(
+                    frame,
+                    text="Serão gerados arquivos contendo os logs de acesso",
+                ).pack(pady=PADYS["label_to_top"])
+
                 ttk.Label(frame, text="Caminho do arquivo .xlsx:").pack(
                     pady=PADYS["label_to_top"]
                 )
@@ -279,16 +289,15 @@ class Janela(ttk.Window):
                 pady=PADYS["execute_button"]
             )
 
-        self.frames_tab5[current_provider] = frame
-
         for provider in self.frames_tab5:
             fram = self.frames_tab5[provider]
 
-            if provider != current_provider:
+            if provider != current_provider and fram:
                 fram.pack_forget()
                 fram.destroy()
                 self.frames_tab5[provider] = None
 
+        self.frames_tab5[current_provider] = frame
         self.frames_tab5[current_provider].pack()
 
     def centralize_window(self, width, height):
