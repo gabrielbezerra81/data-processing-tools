@@ -255,9 +255,9 @@ class Janela(ttk.Window):
                     text="Serão gerados arquivos contendo as geocoordenadas e os logs de acesso",
                 ).pack(pady=PADYS["label_to_top"])
 
-                ttk.Label(frame, text="Caminho do arquivo .json:").pack(
-                    pady=PADYS["label_to_top"]
-                )
+                ttk.Label(
+                    frame, text="Caminho do arquivo auditoria-usuarios.json:"
+                ).pack(pady=PADYS["label_to_top"])
                 self.entry_file_tab5 = ttk.Entry(frame, width=path_input_width)
                 self.entry_file_tab5.pack(pady=PADYS["input_to_label"])
 
@@ -272,9 +272,9 @@ class Janela(ttk.Window):
                     text="Serão gerados arquivos contendo os logs de acesso",
                 ).pack(pady=PADYS["label_to_top"])
 
-                ttk.Label(frame, text="Caminho do arquivo .xlsx:").pack(
-                    pady=PADYS["label_to_top"]
-                )
+                ttk.Label(
+                    frame, text="Caminho do arquivo Authentications-ips.xlsx:"
+                ).pack(pady=PADYS["label_to_top"])
                 self.entry_file_tab5 = ttk.Entry(frame, width=path_input_width)
                 self.entry_file_tab5.pack(pady=PADYS["input_to_label"])
 
