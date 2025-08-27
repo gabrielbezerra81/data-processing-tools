@@ -242,14 +242,14 @@ class Janela(ttk.Window):
         )
 
     def tab5_display_components(self):
-        provider_type = self.provider_box.get()
+        current_provider = self.provider_box.get()
 
-        frame = self.frames_tab5.get(provider_type)
+        frame = self.frames_tab5.get(current_provider)
 
         if not frame:
             frame = ttk.Frame(self.tab5)
 
-            if provider_type == PROVIDER_TYPES_DICT["Digital Manager Guru"]:
+            if current_provider == PROVIDER_TYPES_DICT["Digital Manager Guru"]:
                 ttk.Label(frame, text="Caminho do arquivo .json:").pack(
                     pady=PADYS["label_to_top"]
                 )
@@ -261,7 +261,7 @@ class Janela(ttk.Window):
                     text="Selecionar arquivo",
                     command=lambda: selecionar_arquivo(self.entry_file_tab5),
                 ).pack()
-            elif provider_type == PROVIDER_TYPES_DICT["Cartpanda"]:
+            elif current_provider == PROVIDER_TYPES_DICT["Cartpanda"]:
                 ttk.Label(frame, text="Caminho do arquivo .xlsx:").pack(
                     pady=PADYS["label_to_top"]
                 )
@@ -279,12 +279,17 @@ class Janela(ttk.Window):
                 pady=PADYS["execute_button"]
             )
 
-        self.frames_tab5[provider_type] = frame
+        self.frames_tab5[current_provider] = frame
 
-        for fram in self.frames_tab5.values():
-            fram.pack_forget()
+        for provider in self.frames_tab5:
+            fram = self.frames_tab5[provider]
 
-        self.frames_tab5[provider_type].pack()
+            if provider != current_provider:
+                fram.pack_forget()
+                fram.destroy()
+                self.frames_tab5[provider] = None
+
+        self.frames_tab5[current_provider].pack()
 
     def centralize_window(self, width, height):
         self.update_idletasks()
@@ -321,12 +326,6 @@ class Janela(ttk.Window):
         if not path.is_dir():
             messagebox.showerror("Erro", "Selecione uma pasta raiz válida.")
             return
-
-        # if not cookie:
-        #     messagebox.showerror("Erro", "O campo de cookie está vazio.")
-        #     return
-
-        # salvar_cookie(cookie)
 
         try:
             process_logs_extractions(pasta_raiz)
@@ -389,34 +388,10 @@ class Janela(ttk.Window):
 
         match provider_type:
             case value if value == PROVIDER_TYPES_DICT["Digital Manager Guru"]:
-                is_file_valid = self.validate_file(file)
-
-                if not is_file_valid:
-                    return
-
-                is_json = self.validate_file_extension(path.resolve(), ".json")
-
-                if not is_json:
-                    return
-
-                process_guru(path.resolve())
+                self.execute_guru(file, path)
 
             case value if value == PROVIDER_TYPES_DICT["Cartpanda"]:
-                is_file_valid = self.validate_file(file)
-
-                if not is_file_valid:
-                    return
-
-                is_xlsx = self.validate_file_extension(path.resolve(), ".xlsx")
-                if not is_xlsx:
-                    return
-
-                process_cartpanda(path.resolve())
-
-        messagebox.showinfo(
-            "Sucesso",
-            "Os arquivo processados foram salvo na pasta 'processamentos guru'",
-        )
+                self.execute_cartpanda(file, path)
 
     def validate_file(self, file):
         file_path = Path(file)
@@ -435,10 +410,44 @@ class Janela(ttk.Window):
         file_path = Path(file)
 
         if file_path.suffix != extension:
-            messagebox.showerror("Erro", "O arquivo selecionado não é um {extension}")
+            messagebox.showerror("Erro", f"O arquivo selecionado não é um {extension}")
             return False
 
         return True
+
+    def execute_guru(self, file, path):
+        is_file_valid = self.validate_file(file)
+
+        if not is_file_valid:
+            return
+
+        is_json = self.validate_file_extension(path.resolve(), ".json")
+
+        if not is_json:
+            return
+
+        process_guru(path.resolve())
+        messagebox.showinfo(
+            "Sucesso",
+            "Os arquivo processados foram salvo na pasta 'processamentos guru'",
+        )
+
+    def execute_cartpanda(self, file, path):
+        is_file_valid = self.validate_file(file)
+
+        if not is_file_valid:
+            return
+
+        is_xlsx = self.validate_file_extension(path.resolve(), ".xlsx")
+        if not is_xlsx:
+            return
+
+        process_cartpanda(path.resolve())
+
+        messagebox.showinfo(
+            "Sucesso",
+            "Os arquivo processados foram salvo na pasta 'processamentos cartpanda'",
+        )
 
 
 def is_frozen():
