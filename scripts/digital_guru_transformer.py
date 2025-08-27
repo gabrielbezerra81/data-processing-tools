@@ -51,18 +51,24 @@ def process_guru(path: str):
 
             create_geolocation_entry(event, users_geoloc)
 
+        logs_content = ""
+
         for user in users_accesslogs:
             log = users_accesslogs[user]
             geoloc = users_geoloc[user]
 
-            log_new_path = save_folder.joinpath(f"access-log-{user}.txt")
-            geoloc_new_path = save_folder.joinpath(f"geolocation-{user}.csv")
+            logs_content += log + "\n\n"
 
-            with open(log_new_path, "wt+") as log_file:
-                log_file.write(log)
+            geoloc_new_path = save_folder.joinpath(f"geolocation-{user}.csv")
 
             with open(geoloc_new_path, "wt+") as geoloc_file:
                 geoloc_file.write(geoloc)
+
+        log_new_path = save_folder.joinpath(f"access-log-todos.txt")
+
+        with open(log_new_path, "wt+") as log_file:
+
+            log_file.write(logs_content)
 
     process_files_peron(str(save_folder.resolve()))
 
