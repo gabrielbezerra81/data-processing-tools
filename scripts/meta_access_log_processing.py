@@ -272,6 +272,8 @@ def create_logs_datalist(user_logs: UserAcessLogs, ips_results: dict[str, InfoIP
     if not len(lines):
         print("Não há logs de acesso para salvar na planilha")
 
+    lines.sort(key=lambda line: line["ISO_Date"], reverse=True)
+
     return lines
 
 
