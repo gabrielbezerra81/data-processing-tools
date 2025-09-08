@@ -1,12 +1,17 @@
 from pathlib import Path
 import argparse
-import shutil
 from typing import TypedDict, Literal
 import re
 import requests
 import json
 import numpy
 import math
+import datetime
+import locale
+import openpyxl
+from openpyxl.utils import get_column_letter
+
+locale.setlocale(locale.LC_ALL, "pt_BR")
 
 
 class AccessLog(TypedDict):
@@ -17,7 +22,7 @@ class AccessLog(TypedDict):
 
 class UserAcessLogs(TypedDict):
     service: str
-    target: str
+    identifier: str
     logs: list[AccessLog]
 
 
@@ -36,11 +41,11 @@ InfoIP_API = TypedDict(
         "timezone": str,
         "countryCode": str,
         "status": str,
+        "query": str,
     },
 )
 
-# Diurno => entre 5h às 22h
-# Noturno => entre 22h às 5h
+
 Periodo = Literal["Diurno", "Noturno"]
 
 InfoIP_Sheet = TypedDict(
@@ -60,8 +65,8 @@ InfoIP_Sheet = TypedDict(
         "IP_Proxy": str,
         "IP_Hospedagem": str,
         "Periodo": Periodo,
-        "Latitude": float,
-        "Longitude": float,
+        "Latitude": str,
+        "Longitude": str,
     },
 )
 
@@ -139,20 +144,22 @@ def log_parse(line: str, next_line: str):
 def log_parser(file):
     file_path = Path(file)
 
-    user_logs: UserAcessLogs = {"service": "", "target": "", "logs": []}
+    user_logs: UserAcessLogs = {"service": "", "identifier": "", "logs": []}
 
     with open(file_path, "rt", encoding="utf-8") as fp:
         lines = fp.readlines()
 
         service_index = find_index("Service", lines)
-        target_index = find_index("Target", lines)
+        identifier_index = find_index("Account Identifier", lines)
         ips_index = find_exact_index("Ip Addresses", lines)
 
         [_, service] = lines[service_index].split(" ")
-        [_, target] = lines[target_index].split(" ")
+        [_, identifier] = (
+            lines[identifier_index].replace("\n", "").split("Account Identifier ")
+        )
 
         user_logs["service"] = service
-        user_logs["target"] = target
+        user_logs["identifier"] = identifier
 
         for index, line in enumerate(lines):
             if index < ips_index + 1:
@@ -171,18 +178,23 @@ def get_ips_info(user_logs: UserAcessLogs):
 
     ips_list_by_100 = numpy.array_split(ips_list, math.ceil(len(ips_list) / 100))
 
-    ips_results: list[InfoIP_API] = []
+    ips_results: dict[str, InfoIP_API] = {}
+
+    fields = "asname,as,region,city,mobile,proxy,hosting,lat,lon,timezone,countrycode,status,query"
 
     try:
         for ips in ips_list_by_100:
             body = json.dumps(ips.tolist())
-            response = requests.post(IP_URL, data=body)
+            response = requests.post(IP_URL, data=body, params={"fields": fields})
 
             data: list[InfoIP_API] = response.json()
-            ips_results.extend(data)
 
-        # with open("data.json", "w+") as fj:
-        #     json.dump(ips_results, fj)
+            for index, ip in enumerate(ips):
+                ips_results[ip] = data[index]
+
+        with open("data.json", "w+") as fj:
+            json.dump(ips_results, fj)
+
         return ips_results
 
     except Exception as e:
@@ -191,20 +203,135 @@ def get_ips_info(user_logs: UserAcessLogs):
         return ips_results
 
 
-def create_logs_sheet(user_logs: UserAcessLogs, ips_results: list[InfoIP_API]):
-    pass
+def create_date_fields(utc_date):
+    string_date = utc_date.replace("UTC", "+0000")
+
+    date = datetime.datetime.strptime(string_date, "%Y-%m-%d %H:%M:%S %z")
+
+    current_local_time = datetime.datetime.now().astimezone()
+    current_timezone = current_local_time.tzinfo
+
+    local_date = date.astimezone(current_timezone)
+
+    iso_date = local_date.isoformat()
+    data_hora = local_date.strftime("%d/%m/%Y %H:%M")
+    dia_semana = local_date.strftime("%A")
+    data_fuso = "GMT " + local_date.strftime("%z")
+
+    hours = int(local_date.strftime("%H"))
+
+    if hours >= 5 and hours < 22:
+        periodo: Periodo = "Diurno"
+    else:
+        periodo: Periodo = "Noturno"
+
+    # Diurno => entre 5h às 21:59h
+    # Noturno => entre 22h às 4:59h
+
+    return [iso_date, data_hora, dia_semana, data_fuso, periodo]
+
+
+def create_logs_datalist(user_logs: UserAcessLogs, ips_results: dict[str, InfoIP_API]):
+
+    lines: list[InfoIP_Sheet] = []
+
+    for log in user_logs["logs"]:
+
+        info = ips_results.get(log["ip"])
+
+        if info is None:
+            continue
+
+        port = f":[{log.get("port")}]" if log.get("port") else ""
+
+        [iso_date, data_hora, dia_semana, data_fuso, periodo] = create_date_fields(
+            log["date"]
+        )
+
+        sheet_line: InfoIP_Sheet = {
+            "Alvo": user_logs.get("identifier"),
+            "IP": log["ip"] + port,
+            "ISO_Date": iso_date,
+            "Data": data_hora,
+            "Dia da semana": dia_semana,
+            "Data fuso": data_fuso,
+            "IP_dono": info.get("asname"),
+            "IP_AS": info.get("as"),
+            "IP_Regiao": info.get("region"),
+            "IP_Cidade": info.get("city"),
+            "IP_movel": str(info.get("mobile")),
+            "IP_Proxy": str(info.get("proxy")),
+            "IP_Hospedagem": str(info.get("hosting")),
+            "Periodo": periodo,
+            "Latitude": str(info.get("lat")),
+            "Longitude": str(info.get("lon")),
+        }
+
+        lines.append(sheet_line)
+
+    if not len(lines):
+        print("Não há logs de acesso para salvar na planilha")
+
+    return lines
+
+
+def create_logs_sheet(lines: list[InfoIP_Sheet], path: Path, identifier: str):
+    headers = []
+
+    if not len(lines):
+        return
+
+    for key in lines[0]:
+        headers.append(key)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+
+    ws.title = "Logs de acesso"
+
+    data = [headers]
+
+    for line in lines:
+        row_fields = []
+
+        for key in line:
+            row_fields.append(line[key])
+
+        data.append(row_fields)
+
+    column_widths = []
+
+    for row in data:
+        ws.append(row)
+
+    for row in data:
+        for i, cell in enumerate(row):
+            if len(column_widths) > i:
+                if len(cell) > column_widths[i]:
+                    column_widths[i] = 1.2 * len(cell)
+            else:
+                column_widths += [1.2 * len(cell)]
+
+    for i, column_width in enumerate(column_widths, 1):  # ,1 to start at 1
+        ws.column_dimensions[get_column_letter(i)].width = column_width
+
+    wb.save(path.joinpath(f"log-acesso-{identifier}.xlsx").resolve())
 
 
 def process_logs(file: str):
     user_logs = log_parser(file)
 
-    # ips_results = get_ips_info(user_logs)
-    with open("data.json", "r+") as fj:
-        ips_results:list[InfoIP_API] = json.load(fj)
+    ips_results = get_ips_info(user_logs)
 
-    print(len(ips_results))
+    # testing only
+    # with open("data.json", "r+") as fj:
+    #     ips_results: dict[str, InfoIP_API] = json.load(fj)
 
-    create_logs_sheet(user_logs, ips_results)
+    lines = create_logs_datalist(user_logs, ips_results)
+
+    path = Path(file).parent
+
+    create_logs_sheet(lines, path, user_logs["identifier"])
 
 
 if __name__ == "__main__":
