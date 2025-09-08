@@ -10,7 +10,9 @@ import datetime
 import locale
 import openpyxl
 from openpyxl.utils import get_column_letter
-from scripts.process_html_logs_extractions_to_text import process_html_logs_extractions_to_text
+from scripts.process_html_logs_extractions_to_text import (
+    process_html_logs_extractions_to_text,
+)
 
 
 locale.setlocale(locale.LC_ALL, "pt_BR")
@@ -432,6 +434,7 @@ def get_arguments():
 
 
 if __name__ == "__main__":
+    # python -m scripts.process_meta_text_logs --pasta_raiz
     args = get_arguments()
 
     root_path: str = args.pasta_raiz
