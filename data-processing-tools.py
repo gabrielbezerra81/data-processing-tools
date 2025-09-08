@@ -322,7 +322,11 @@ class Janela(ttk.Window):
             return
 
         try:
-            verify_hashes(str(path.resolve()))
+            result = verify_hashes(str(path.resolve()))
+            if e := result.get("error"):
+                messagebox.showerror("Erro", f"Erro ao executar script:\n{e}")
+                return
+
             messagebox.showinfo(
                 "Sucesso",
                 "Verificação de hashes concluída.\n\nFoi criado um relatório em pdf na mesma pasta.",
