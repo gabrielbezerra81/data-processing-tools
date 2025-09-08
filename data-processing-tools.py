@@ -7,11 +7,14 @@ import sys
 from pathlib import Path
 
 from scripts.verifica_hashes_threads import verify_hashes
-from scripts.processa_meta_whats_logs import process_logs_extractions
+from scripts.process_html_logs_extractions_to_text import (
+    process_html_logs_extractions_to_text,
+)
 from scripts.create_hashes_model_file import create_hashes_file
 from scripts.hasher import Hasher
 from scripts.digital_guru_transformer import process_guru
 from scripts.cartpanda_transformer import process_cartpanda
+from scripts.processa_arquivos_peron import process_files_peron
 
 
 # COOKIE_FILE = "cookie.txt"
@@ -337,7 +340,8 @@ class Janela(ttk.Window):
             return
 
         try:
-            process_logs_extractions(pasta_raiz)
+            process_html_logs_extractions_to_text(pasta_raiz)
+            process_files_peron(pasta_raiz)
 
             messagebox.showinfo("Sucesso", "Processamento de logs concluído.")
         except subprocess.CalledProcessError as e:

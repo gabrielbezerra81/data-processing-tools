@@ -10,7 +10,7 @@ import datetime
 import locale
 import openpyxl
 from openpyxl.utils import get_column_letter
-from processa_meta_whats_logs import process_html_logs_extractions_to_text
+from scripts.process_html_logs_extractions_to_text import process_html_logs_extractions_to_text
 
 
 locale.setlocale(locale.LC_ALL, "pt_BR")
