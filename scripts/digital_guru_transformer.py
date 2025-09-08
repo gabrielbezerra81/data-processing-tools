@@ -3,7 +3,7 @@ import json
 from typing import TypedDict, Literal
 from datetime import datetime, timezone
 import argparse
-from scripts.processa_arquivos_peron import process_files_peron
+from scripts.process_files_peron import process_files_peron
 
 
 class Infrastructure(TypedDict):

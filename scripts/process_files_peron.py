@@ -274,6 +274,9 @@ def create_files_list(root_path: str):
 
                 if is_bilhetagem_file(file_path):
                     file_type = "bilhetagem"
+                else:
+                    # log files are not processed in peron anymore
+                    continue
 
                 if (
                     is_file_empty(file_path)
@@ -292,6 +295,8 @@ def create_files_list(root_path: str):
 
 def process_files_peron(cur_path: str):
     files = create_files_list(cur_path)
+
+    print(files)
 
     print(f"Processando {len(files)} arquivos")
 

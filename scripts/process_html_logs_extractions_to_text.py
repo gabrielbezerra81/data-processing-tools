@@ -7,7 +7,7 @@ import shutil
 from typing import TypedDict
 from pathlib import Path
 from scripts.zip_tools import recursive_delete_zips
-from scripts.processa_arquivos_peron import process_files_peron
+from scripts.process_files_peron import process_files_peron
 
 
 class FolderRenameItem(TypedDict):

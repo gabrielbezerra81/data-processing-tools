@@ -14,7 +14,8 @@ from scripts.create_hashes_model_file import create_hashes_file
 from scripts.hasher import Hasher
 from scripts.digital_guru_transformer import process_guru
 from scripts.cartpanda_transformer import process_cartpanda
-from scripts.processa_arquivos_peron import process_files_peron
+from scripts.process_files_peron import process_files_peron
+from scripts.process_meta_text_logs import process_meta_text_logs
 
 
 # COOKIE_FILE = "cookie.txt"
@@ -344,7 +345,7 @@ class Janela(ttk.Window):
             return
 
         try:
-            process_html_logs_extractions_to_text(pasta_raiz)
+            process_meta_text_logs(pasta_raiz)
             process_files_peron(pasta_raiz)
 
             messagebox.showinfo("Sucesso", "Processamento de logs concluído.")
