@@ -10,6 +10,9 @@ import datetime
 import locale
 import openpyxl
 from openpyxl.utils import get_column_letter
+from zip_tools import recursive_delete_zips
+from processa_meta_whats_logs import process_html_folders_in_path
+
 
 locale.setlocale(locale.LC_ALL, "pt_BR")
 
@@ -47,6 +50,7 @@ InfoIP_API = TypedDict(
 
 
 Periodo = Literal["Diurno", "Noturno"]
+BILHETAGEM_KEYWORDS = ["Message Log", "Call Log", "Call Logs"]
 
 InfoIP_Sheet = TypedDict(
     "InfoIP_Sheet",
@@ -102,7 +106,7 @@ def find_exact_index(term: str, array: list[str]):
     return index
 
 
-def log_parse(line: str, next_line: str):
+def ip_parse(line: str, next_line: str):
     access_log: AccessLog = {"ip": "", "port": "", "date": ""}
 
     if "IP Address" in line:
@@ -141,7 +145,7 @@ def log_parse(line: str, next_line: str):
         return None
 
 
-def log_parser(file):
+def create_userlogs(file):
     file_path = Path(file)
 
     user_logs: UserAcessLogs = {"service": "", "identifier": "", "logs": []}
@@ -166,7 +170,7 @@ def log_parser(file):
                 continue
 
             if index + 1 < len(lines):
-                access_log = log_parse(line, next_line=lines[index + 1])
+                access_log = ip_parse(line, next_line=lines[index + 1])
                 if access_log:
                     user_logs["logs"].append(access_log)
 
@@ -203,7 +207,7 @@ def get_ips_info(user_logs: UserAcessLogs):
         return ips_results
 
 
-def create_date_fields(utc_date):
+def create_row_date_fields(utc_date):
     string_date = utc_date.replace("UTC", "+0000")
 
     date = datetime.datetime.strptime(string_date, "%Y-%m-%d %H:%M:%S %z")
@@ -244,7 +248,7 @@ def create_logs_datalist(user_logs: UserAcessLogs, ips_results: dict[str, InfoIP
 
         port = f":[{log.get("port")}]" if log.get("port") else ""
 
-        [iso_date, data_hora, dia_semana, data_fuso, periodo] = create_date_fields(
+        [iso_date, data_hora, dia_semana, data_fuso, periodo] = create_row_date_fields(
             log["date"]
         )
 
@@ -324,8 +328,8 @@ def create_logs_sheet(lines: list[InfoIP_Sheet], path: Path, user_logs: UserAces
     )
 
 
-def process_logs(file: str):
-    user_logs = log_parser(file)
+def process_logfile(file: str):
+    user_logs = create_userlogs(file)
 
     ips_results = get_ips_info(user_logs)
 
@@ -340,10 +344,99 @@ def process_logs(file: str):
     create_logs_sheet(lines, path, user_logs)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--file", required=True, type=str)
+def is_file_empty(file_path):
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            content = file.read()
+
+            count = content.count("No responsive records located")
+
+            empty_message = False
+            empty_call = False
+
+            if "Message Log\nNo responsive records located" in content:
+                empty_message = True
+
+            if "Call Logs\nNo responsive records located" in content:
+                empty_call = True
+
+            if empty_message and empty_call and count == 2:
+                return True
+
+            return False
+    except:
+        return False
+
+
+def is_bilhetagem_file(file_path):
+    if "bilhetagem" in file_path:
+        return True
+
+    with open(file_path, "r", encoding="utf-8") as file:
+        content = file.read()
+
+        return any(word in content for word in BILHETAGEM_KEYWORDS)
+
+
+def create_files_list(root_path: str):
+    current_path = Path(root_path)
+
+    files: list[str] = []
+
+    try:
+        for item in current_path.rglob("*"):
+
+            if item.name.endswith(".txt"):
+                file_path = str(item.resolve())
+
+                if is_bilhetagem_file(file_path):
+                    continue
+
+                if (
+                    is_file_empty(file_path)
+                    or "instructions" in item.name
+                    or "preservation" in item.name
+                ):
+                    continue
+
+                files.append(file_path)
+
+        return files
+    except Exception as e:
+        print(f"file list error {e}")
+        return files
+
+
+def process_meta_text_logs(root_path: str):
+    process_html_folders_in_path(root_path)
+
+    recursive_delete_zips(root_path)
+
+    files = create_files_list(root_path)
+
+    print(f"Processando {len(files)} arquivos")
+
+    for file in files:
+        process_logfile(file)
+
+
+def get_arguments():
+    parser = argparse.ArgumentParser(description="Processador de logs da META")
+    parser.add_argument(
+        "--pasta_raiz",
+        type=str,
+        required=True,
+        help="Pasta raiz contendo subpastas com arquivos html",
+    )
 
     args = parser.parse_args()
 
-    process_logs(args.file)
+    return args
+
+
+if __name__ == "__main__":
+    args = get_arguments()
+
+    root_path: str = args.pasta_raiz
+
+    process_meta_text_logs(root_path)
