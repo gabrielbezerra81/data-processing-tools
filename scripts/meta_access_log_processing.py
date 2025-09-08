@@ -158,7 +158,7 @@ def log_parser(file):
             lines[identifier_index].replace("\n", "").split("Account Identifier ")
         )
 
-        user_logs["service"] = service
+        user_logs["service"] = service.replace("\n", "")
         user_logs["identifier"] = identifier
 
         for index, line in enumerate(lines):
@@ -275,7 +275,7 @@ def create_logs_datalist(user_logs: UserAcessLogs, ips_results: dict[str, InfoIP
     return lines
 
 
-def create_logs_sheet(lines: list[InfoIP_Sheet], path: Path, identifier: str):
+def create_logs_sheet(lines: list[InfoIP_Sheet], path: Path, user_logs: UserAcessLogs):
     headers = []
 
     if not len(lines):
@@ -315,7 +315,11 @@ def create_logs_sheet(lines: list[InfoIP_Sheet], path: Path, identifier: str):
     for i, column_width in enumerate(column_widths, 1):  # ,1 to start at 1
         ws.column_dimensions[get_column_letter(i)].width = column_width
 
-    wb.save(path.joinpath(f"log-acesso-{identifier}.xlsx").resolve())
+    wb.save(
+        path.joinpath(
+            f"log-acesso-{user_logs['identifier']}-{user_logs['service']}.xlsx"
+        ).resolve()
+    )
 
 
 def process_logs(file: str):
@@ -331,7 +335,7 @@ def process_logs(file: str):
 
     path = Path(file).parent
 
-    create_logs_sheet(lines, path, user_logs["identifier"])
+    create_logs_sheet(lines, path, user_logs)
 
 
 if __name__ == "__main__":
