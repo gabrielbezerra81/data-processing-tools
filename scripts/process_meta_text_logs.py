@@ -10,8 +10,7 @@ import datetime
 import locale
 import openpyxl
 from openpyxl.utils import get_column_letter
-from zip_tools import recursive_delete_zips
-from processa_meta_whats_logs import process_html_folders_in_path
+from processa_meta_whats_logs import process_html_logs_extractions_to_text
 
 
 locale.setlocale(locale.LC_ALL, "pt_BR")
@@ -196,8 +195,8 @@ def get_ips_info(user_logs: UserAcessLogs):
             for index, ip in enumerate(ips):
                 ips_results[ip] = data[index]
 
-        with open("data.json", "w+") as fj:
-            json.dump(ips_results, fj)
+        # with open("data.json", "w+") as fj:
+        #     json.dump(ips_results, fj)
 
         return ips_results
 
@@ -408,9 +407,7 @@ def create_files_list(root_path: str):
 
 
 def process_meta_text_logs(root_path: str):
-    process_html_folders_in_path(root_path)
-
-    recursive_delete_zips(root_path)
+    process_html_logs_extractions_to_text(root_path)
 
     files = create_files_list(root_path)
 
