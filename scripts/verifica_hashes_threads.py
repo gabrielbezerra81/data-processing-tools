@@ -356,8 +356,9 @@ def verify_hashes(files_folder_path: str):
     hashes_path: Path | None = object["hashes_path"]
 
     if not hashes_path:
-        print("o caminho do arquivo de hashes.txt ou .csv não existe")
-        sys.exit(1)
+        msg = "o caminho do arquivo de hashes.txt ou .csv não existe"
+        print(msg)
+        return {"error": msg}
 
     hashes_path = hashes_path.resolve()
 

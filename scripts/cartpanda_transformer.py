@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 import openpyxl
 from openpyxl.cell import Cell, MergedCell
-from scripts.processa_arquivos_peron import process_files_peron
+from scripts.process_files_peron import process_files_peron
 
 
 def process_cartpanda(path: str):

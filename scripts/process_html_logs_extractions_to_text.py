@@ -7,7 +7,7 @@ import shutil
 from typing import TypedDict
 from pathlib import Path
 from scripts.zip_tools import recursive_delete_zips
-from scripts.processa_arquivos_peron import process_files_peron
+from scripts.process_files_peron import process_files_peron
 
 
 class FolderRenameItem(TypedDict):
@@ -316,7 +316,7 @@ def rename_folders():
             print(f"Erro ao renomear diretórios: {e}")
 
 
-def process_folders_in_path(root_path: str, level=0):
+def process_html_folders_in_path(root_path: str, level=0):
     root = Path(root_path)
 
     # try to process zip files
@@ -338,7 +338,7 @@ def process_folders_in_path(root_path: str, level=0):
                 if "bilhetagem" in str(sub_item.resolve()) and level == 0:
                     bilhetagem_path = item.joinpath("bilhetagem")
                     process_zip_files(root_path=bilhetagem_path)
-                    process_folders_in_path(bilhetagem_path, level=1)
+                    process_html_folders_in_path(bilhetagem_path, level=1)
 
     if level == 0:
         rename_folders()
@@ -358,12 +358,10 @@ def get_arguments():
     return args
 
 
-def process_logs_extractions(root_path: str):
-    process_folders_in_path(root_path)
+def process_html_logs_extractions_to_text(root_path: str):
+    process_html_folders_in_path(root_path)
 
     recursive_delete_zips(root_path)
-
-    process_files_peron(root_path)
 
 
 if __name__ == "__main__":
@@ -371,4 +369,4 @@ if __name__ == "__main__":
 
     root_path: str = args.pasta_raiz
 
-    process_logs_extractions(root_path)
+    process_html_logs_extractions_to_text(root_path)
