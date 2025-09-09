@@ -179,11 +179,14 @@ def create_userlogs(file):
 
 
 def get_ips_info(user_logs: UserAcessLogs):
-    ips_list = [log["ip"] for log in user_logs["logs"]]
-
-    ips_list_by_100 = numpy.array_split(ips_list, math.ceil(len(ips_list) / 100))
+    ips_list = list(set([log["ip"] for log in user_logs["logs"]]))
 
     ips_results: dict[str, InfoIP_API] = {}
+
+    if not len(ips_list):
+        return ips_results
+
+    ips_list_by_100 = numpy.array_split(ips_list, math.ceil(len(ips_list) / 100))
 
     fields = "asname,as,region,city,mobile,proxy,hosting,lat,lon,timezone,countrycode,status,query"
 
@@ -203,7 +206,7 @@ def get_ips_info(user_logs: UserAcessLogs):
         return ips_results
 
     except Exception as e:
-        print("error", e)
+        print("get ip error", e)
 
         return ips_results
 
@@ -276,8 +279,8 @@ def create_logs_datalist(user_logs: UserAcessLogs, ips_results: dict[str, InfoIP
 
     if not len(lines):
         print("Não há logs de acesso para salvar na planilha")
-
-    lines.sort(key=lambda line: line["ISO_Date"], reverse=True)
+    else:
+        lines.sort(key=lambda line: line["ISO_Date"], reverse=True)
 
     return lines
 
@@ -294,7 +297,7 @@ def create_logs_sheet(lines: list[InfoIP_Sheet], path: Path, user_logs: UserAces
     wb = openpyxl.Workbook()
     ws = wb.active
 
-    ws.title = "Logs de acesso"
+    ws.title = f"Logs_{user_logs['service']}_{user_logs['identifier']}"
 
     data = [headers]
 
