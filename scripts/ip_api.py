@@ -4,6 +4,7 @@ import json
 import requests
 from typing import TypedDict
 from math import ceil
+import datetime
 
 IP_URL = "http://ip-api.com/batch"
 
@@ -30,7 +31,7 @@ InfoIP_API = TypedDict(
 class AccessLog(TypedDict):
     ip: str
     port: str
-    date: str
+    date: datetime.datetime
 
 
 class UserAcessLogs(TypedDict):
