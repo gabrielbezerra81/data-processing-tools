@@ -14,41 +14,9 @@ from openpyxl.utils import get_column_letter
 from scripts.process_html_logs_extractions_to_text import (
     process_html_logs_extractions_to_text,
 )
-
+from scripts.ip_api import get_ips_info, AccessLog, InfoIP_API, UserAcessLogs
 
 locale.setlocale(locale.LC_ALL, "pt_BR")
-
-
-class AccessLog(TypedDict):
-    ip: str
-    port: str
-    date: str
-
-
-class UserAcessLogs(TypedDict):
-    service: str
-    identifier: str
-    logs: list[AccessLog]
-
-
-InfoIP_API = TypedDict(
-    "InfoIP_API",
-    {
-        "asname": str,
-        "as": str,
-        "region": str,
-        "city": str,
-        "mobile": bool,
-        "proxy": bool,
-        "hosting": bool,
-        "lat": float,
-        "lon": float,
-        "timezone": str,
-        "countryCode": str,
-        "status": str,
-        "query": str,
-    },
-)
 
 
 Periodo = Literal["Diurno", "Noturno"]
@@ -177,54 +145,6 @@ def create_userlogs(file):
                     user_logs["logs"].append(access_log)
 
         return user_logs
-
-
-def get_ips_info(user_logs: UserAcessLogs):
-    ips_list = list(set([log["ip"] for log in user_logs["logs"]]))
-
-    ips_results: dict[str, InfoIP_API] = {}
-
-    if not len(ips_list):
-        return ips_results
-
-    ips_list_by_100 = numpy.array_split(ips_list, math.ceil(len(ips_list) / 100))
-
-    fields = "asname,as,region,city,mobile,proxy,hosting,lat,lon,timezone,countrycode,status,query"
-
-    try:
-        for ips in ips_list_by_100:
-            body = json.dumps(ips.tolist())
-            response = requests.post(
-                IP_URL, data=body, params={"fields": fields, "lang": "pt-BR"}
-            )
-
-            # X-Rl => requests remaining in limit
-            # X-Ttl => seconds left to reset limit
-            requests_left = str(response.headers.get("X-Rl"))
-            time_to_reset = str(response.headers.get("X-Ttl"))
-
-            data: list[InfoIP_API] = response.json()
-
-            for index, ip in enumerate(ips):
-                ips_results[ip] = data[index]
-
-            if requests_left == "1" or requests_left == "0":
-                msg = f"Esperando {time_to_reset} segundos para o limite da API resetar..."
-                time_to_reset = int(time_to_reset) + 2
-
-                print(msg)
-
-                time.sleep(time_to_reset)
-
-        # with open("data.json", "w+") as fj:
-        #     json.dump(ips_results, fj)
-
-        return ips_results
-
-    except Exception as e:
-        print("get ip error", e)
-
-        return ips_results
 
 
 def create_row_date_fields(utc_date):
