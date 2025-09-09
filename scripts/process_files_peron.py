@@ -265,15 +265,12 @@ def create_files_list(root_path: str):
 
     try:
         for item in current_path.rglob("*"):
-
             if item.name.endswith(".txt"):
                 file_path = str(item.resolve())
 
-                # type => 'log' ir 'bilhetagem'
-                file_type: FileType = "log"
-
                 if is_bilhetagem_file(file_path):
-                    file_type = "bilhetagem"
+                    # type => 'log' ir 'bilhetagem'
+                    file_type: FileType = "bilhetagem"
                 else:
                     # log files are not processed in peron anymore
                     continue
@@ -295,8 +292,6 @@ def create_files_list(root_path: str):
 
 def process_files_peron(cur_path: str):
     files = create_files_list(cur_path)
-
-    print(files)
 
     print(f"Processando {len(files)} arquivos")
 
