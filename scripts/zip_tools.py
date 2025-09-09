@@ -9,7 +9,7 @@ def recursive_create_zip_list(root_path: str):
 
         path = pathlib.Path(root_path)
 
-        for item in path.rglob("*"):
+        for item in path.rglob("*.zip"):
             item_full_path = str(item.resolve())
             if zipfile.is_zipfile(item_full_path):
                 files.append(item_full_path)
