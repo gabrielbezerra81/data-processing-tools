@@ -1,30 +1,15 @@
 from pathlib import Path
 import argparse
-import re
 import datetime
 from scripts.process_html_logs_extractions_to_text import (
     process_html_logs_extractions_to_text,
 )
 from scripts.ip_api import get_ips_info, AccessLog, UserAcessLogs
 from scripts.create_logs_sheet import create_logs_sheet
+from scripts.ip_tools import extract_ip_port
 
 
 BILHETAGEM_KEYWORDS = ["Message Log", "Call Log", "Call Logs"]
-
-
-regex_ipv4 = r"\b(?:(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})\b"
-regex_ipv6 = (
-    r"(?:^|(?<=\s))(?:(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}|"
-    r"(?:[A-Fa-f0-9]{1,4}:){1,7}:|"
-    r"(?:[A-Fa-f0-9]{1,4}:){1,6}:[A-Fa-f0-9]{1,4}|"
-    r"(?:[A-Fa-f0-9]{1,4}:){1,5}(?::[A-Fa-f0-9]{1,4}){1,2}|"
-    r"(?:[A-Fa-f0-9]{1,4}:){1,4}(?::[A-Fa-f0-9]{1,4}){1,3}|"
-    r"(?:[A-Fa-f0-9]{1,4}:){1,3}(?::[A-Fa-f0-9]{1,4}){1,4}|"
-    r"(?:[A-Fa-f0-9]{1,4}:){1,2}(?::[A-Fa-f0-9]{1,4}){1,5}|"
-    r"[A-Fa-f0-9]{1,4}:(?:(?::[A-Fa-f0-9]{1,4}){1,6})|"
-    r":(?:(?::[A-Fa-f0-9]{1,4}){1,7}|:))"
-    r"(?:$|(?=\s))"
-)
 
 
 def find_index(term: str, array: list):
@@ -47,29 +32,9 @@ def ip_parse(line: str, next_line: str):
     if "IP Address" in line:
         [_, full_ip] = line.replace("\n", "").split("IP Address ")
 
-        ipv6_match = re.search(regex_ipv6, full_ip)
-        ipv4_match = re.search(regex_ipv4, full_ip.split(":")[0])
-
-        # ipv6 with port
-        if "]:" in full_ip:
-            [ip, port] = full_ip.replace("[", "").split("]:")
-            access_log["ip"] = ip
-            access_log["port"] = port
-        # ipv6 without port
-        elif ipv6_match:
-            access_log["ip"] = full_ip
-            access_log["port"] = ""
-        # all ipv4 matches
-        elif ipv4_match:
-            # ipv4 with port
-            if ":" in full_ip:
-                [ip, port] = full_ip.split(":")
-                access_log["ip"] = ip
-                access_log["port"] = port
-            # ipv4 without port
-            else:
-                access_log["ip"] = full_ip
-                access_log["port"] = ""
+        result = extract_ip_port(full_ip)
+        access_log["ip"] = result.get("ip")
+        access_log["port"] = result.get("port")
 
         if "Time" in next_line:
             [_, time] = next_line.replace("\n", "").split("Time ")
