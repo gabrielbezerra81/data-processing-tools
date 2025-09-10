@@ -287,6 +287,8 @@ def create_files_list(files_folder_path: Path, level: int):
             subfolder_files = create_files_list(item, level=1).get("folder_files", [])
         elif item.name.endswith(".zip"):
             folder_files.append(item)
+        elif item.name.endswith(".7z"):
+            folder_files.append(item)
             # adiciona os arquivos contidos nas subpastas em até 1 nível abaixo
         elif item.name.endswith(".gpg"):
             folder_files.append(item)

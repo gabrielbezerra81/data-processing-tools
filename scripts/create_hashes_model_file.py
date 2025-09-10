@@ -10,6 +10,9 @@ def create_hashes_file(folder_path: str):
     zip_files = [file.name for file in current_path.glob("*.zip")]
     files.extend(zip_files)
 
+    zip_files = [file.name for file in current_path.glob("*.7z")]
+    files.extend(zip_files)
+
     exclude = {"relatorio_hashes.pdf"}
     pdf_files = [
         file.name for file in current_path.glob("*.pdf") if file.name not in exclude
