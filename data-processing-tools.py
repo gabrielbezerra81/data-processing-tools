@@ -114,7 +114,7 @@ class Janela(ttk.Window):
             alpha,
             **kwargs,
         )
-        self.title("Ferramentas de Processamento")
+        self.title("Processamento de telemática")
         self.centralize_window(900, 460)
         self.configure_tabs()
         self.configure_tab1()
