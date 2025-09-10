@@ -50,7 +50,7 @@ def get_ips_info(user_logs: UserAcessLogs):
 
     ips_list_by_100 = numpy.array_split(ips_list, ceil(len(ips_list) / 100))
 
-    fields = "asname,as,region,city,mobile,proxy,hosting,lat,lon,timezone,countrycode,status,query"
+    fields = "asname,as,region,city,mobile,proxy,hosting,lat,lon,timezone,countryCode,status,query"
 
     for ips in ips_list_by_100:
         try:
