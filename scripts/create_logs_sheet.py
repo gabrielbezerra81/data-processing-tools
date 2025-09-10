@@ -34,7 +34,10 @@ InfoIP_Sheet = TypedDict(
 )
 
 
-def create_row_date_fields(date: datetime.datetime):
+def create_row_date_fields(date: datetime.datetime | None):
+    if not date:
+        return ["", "", "", "", ""]
+
     current_local_time = datetime.datetime.now().astimezone()
     current_timezone = current_local_time.tzinfo
 

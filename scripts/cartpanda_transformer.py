@@ -2,7 +2,11 @@ from pathlib import Path
 import argparse
 import openpyxl
 from openpyxl.cell import Cell, MergedCell
-from scripts.process_files_peron import process_files_peron
+
+from scripts.ip_api import get_ips_info, AccessLog, UserAcessLogs
+from scripts.create_logs_sheet import create_logs_sheet
+from scripts.ip_tools import extract_ip_port
+import datetime
 
 
 def process_cartpanda(path: str):
@@ -12,7 +16,7 @@ def process_cartpanda(path: str):
 
     save_folder.mkdir(exist_ok=True)
 
-    users_accesslogs: dict[str, str] = {}
+    users_accesslogs: dict[str, UserAcessLogs] = {}
 
     workbook = openpyxl.load_workbook(file_path.resolve())
 
@@ -23,42 +27,45 @@ def process_cartpanda(path: str):
         return
 
     for row in sheet.iter_rows(min_row=2):
-
         create_acesslog_entry(row, users_accesslogs)
 
-    logs_content = ""
-
     for user in users_accesslogs:
-        log = users_accesslogs[user]
+        user_logs = users_accesslogs[user]
+        ips_results = get_ips_info(user_logs)
 
-        logs_content += log + "\n\n"
-
-    log_new_path = save_folder.joinpath(f"access-log-todos.txt")
-
-    with open(log_new_path, "wt+") as log_file:
-        log_file.write(logs_content)
-
-    process_files_peron(str(save_folder.resolve()))
+        create_logs_sheet(
+            path=save_folder, user_logs=user_logs, ips_results=ips_results
+        )
 
 
 def create_acesslog_entry(
     row: tuple[Cell | MergedCell, ...],
-    users_accesslogs: dict[str, str],
+    users_accesslogs: dict[str, UserAcessLogs],
 ):
     [id, email, ip, user_agent, login_at] = row
 
-    # if ":" not in ip.value:
-    #     return
-
     if not users_accesslogs.get(email.value):
-        users_accesslogs[email.value] = (
-            f"Service Instagram\nAccount Identifier {email.value}\nLogins"
-        )
+        users_accesslogs[email.value] = {
+            "identifier": email.value,
+            "service": "Cartpanda",
+            "logs": [],
+        }
 
-    users_accesslogs[email.value] += f"\nIP Address {ip.value}"
+    result = extract_ip_port(ip.value)
 
-    if login_at.value:
-        users_accesslogs[email.value] += f"\nTime {login_at.value}"
+    log: AccessLog = {"ip": result.get("ip"), "port": result.get("port"), "date": ""}
+
+    if login_at.value and isinstance(login_at.value, datetime.datetime):
+        string_date = str(login_at.value) + " +0000"
+
+        utc_date = datetime.datetime.strptime(string_date, "%Y-%m-%d %H:%M:%S %z")
+
+        current_timezone = datetime.datetime.now().astimezone().tzinfo
+
+        date: datetime.datetime = utc_date.astimezone(current_timezone)
+        log["date"] = date
+
+    users_accesslogs[email.value]["logs"].append(log)
 
 
 if __name__ == "__main__":
