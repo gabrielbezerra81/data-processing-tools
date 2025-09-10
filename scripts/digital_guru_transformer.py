@@ -3,7 +3,10 @@ import json
 from typing import TypedDict, Literal
 from datetime import datetime, timezone
 import argparse
-from scripts.process_files_peron import process_files_peron
+
+from scripts.ip_api import get_ips_info, AccessLog, UserAcessLogs
+from scripts.create_logs_sheet import create_logs_sheet
+from scripts.ip_tools import extract_ip_port
 
 
 class Infrastructure(TypedDict):
@@ -43,7 +46,7 @@ def process_guru(path: str):
     with open(file_path, "r+") as file:
         content: list[GuruEvent] = json.load(file)
 
-        users_accesslogs: dict[str, str] = {}
+        users_accesslogs: dict[str, UserAcessLogs] = {}
         users_geoloc: dict[str, str] = {}
 
         for event in content:
@@ -51,33 +54,39 @@ def process_guru(path: str):
 
             create_geolocation_entry(event, users_geoloc)
 
-        logs_content = ""
-
         for user in users_accesslogs:
-            log = users_accesslogs[user]
             geoloc = users_geoloc[user]
-
-            logs_content += log + "\n\n"
+            user_logs = users_accesslogs[user]
 
             geoloc_new_path = save_folder.joinpath(f"geolocation-{user}.csv")
 
             with open(geoloc_new_path, "wt+") as geoloc_file:
                 geoloc_file.write(geoloc)
 
-        log_new_path = save_folder.joinpath(f"access-log-todos.txt")
+            ips_results = get_ips_info(user_logs)
 
-        with open(log_new_path, "wt+") as log_file:
-
-            log_file.write(logs_content)
-
-    process_files_peron(str(save_folder.resolve()))
+            create_logs_sheet(
+                path=save_folder, user_logs=user_logs, ips_results=ips_results
+            )
 
 
-def create_acesslog_entry(event: GuruEvent, users_accesslogs: dict[str, str]):
-    if not users_accesslogs.get(event["causer_name"]):
-        users_accesslogs[event["causer_name"]] = f"IP List: {event['causer_name']}"
+def create_acesslog_entry(event: GuruEvent, users_accesslogs: dict[str, UserAcessLogs]):
+    causer_name = event["causer_name"]
+    if not users_accesslogs.get(causer_name):
+        users_accesslogs[causer_name] = {
+            "identifier": causer_name,
+            "service": "Digital Guru",
+            "logs": [],
+        }
 
-    users_accesslogs[event["causer_name"]] += f"\n{event['infrastructure']['ip']}"
+    timestamp = event["updated_at"]
+
+    date = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    result = extract_ip_port(event["infrastructure"]["ip"])
+
+    log: AccessLog = {"ip": result.get("ip"), "port": result.get("port"), "date": date}
+
+    users_accesslogs[causer_name]["logs"].append(log)
 
 
 def create_geolocation_entry(event: GuruEvent, users_geoloc: dict[str, str]):
