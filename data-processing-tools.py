@@ -7,15 +7,13 @@ import sys
 from pathlib import Path
 
 from scripts.verifica_hashes_threads import verify_hashes
-from scripts.process_html_logs_extractions_to_text import (
-    process_html_logs_extractions_to_text,
-)
+
 from scripts.create_hashes_model_file import create_hashes_file
-from scripts.hasher import Hasher
 from scripts.digital_guru_transformer import process_guru
 from scripts.cartpanda_transformer import process_cartpanda
 from scripts.process_files_peron import process_files_peron
 from scripts.process_meta_text_logs import process_meta_text_logs
+from scripts.check_one_file_hash import check_one_file_hash
 
 
 # COOKIE_FILE = "cookie.txt"
@@ -386,7 +384,7 @@ class Janela(ttk.Window):
             return
 
         try:
-            result = Hasher.hash_comparator(file, original_hash, hash_func=hash_type)
+            result = check_one_file_hash(file, original_hash, hash_type)
 
             if result.get("success"):
                 messagebox.showinfo(
