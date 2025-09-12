@@ -5,6 +5,7 @@ from ttkbootstrap.constants import *
 import importlib.util
 import sys
 from pathlib import Path
+from typing import TypedDict, Literal
 
 from scripts.verifica_hashes_threads import verify_hashes
 
@@ -14,9 +15,8 @@ from scripts.cartpanda_transformer import process_cartpanda
 from scripts.process_files_peron import process_files_peron
 from scripts.process_meta_text_logs import process_meta_text_logs
 from scripts.check_one_file_hash import check_one_file_hash
+from scripts.microsoft_transformer import process_microsoft
 
-
-# COOKIE_FILE = "cookie.txt"
 
 path_input_width = 80
 
@@ -32,9 +32,39 @@ packages = {
 
 PADYS = {"input_to_label": (3, 10), "label_to_top": (10, 0), "execute_button": 20}
 
-PROVIDER_TYPES_DICT = {
-    "Digital Manager Guru": "Digital Manager Guru",
-    "Cartpanda": "Cartpanda",
+ProviderType = Literal["Digital Manager Guru", "Cartpanda", "Microsoft"]
+
+
+class ProviderTabConfig(TypedDict):
+    input_type: Literal["file", "folder"]
+    informative_text: str
+    input_text: str
+    select_button_text: str
+    title: ProviderType
+
+
+PROVIDERS_TAB_CONFIG: dict[ProviderType, ProviderTabConfig] = {
+    "Microsoft": {
+        "title": "Microsoft",
+        "input_type": "folder",
+        "informative_text": "Serão gerados arquivos contendo os logs de acesso",
+        "input_text": "Caminho da pasta da telemática da Microsoft",
+        "select_button_text": "Selecionar pasta",
+    },
+    "Digital Manager Guru": {
+        "title": "Digital Manager Guru",
+        "input_type": "file",
+        "informative_text": "Serão gerados arquivos contendo as geocoordenadas e os logs de acesso",
+        "input_text": "Caminho do arquivo auditoria-usuarios.json:",
+        "select_button_text": "Selecionar arquivo",
+    },
+    "Cartpanda": {
+        "title": "Cartpanda",
+        "input_type": "file",
+        "informative_text": "Serão gerados arquivos contendo os logs de acesso",
+        "input_text": "Caminho do arquivo Authentications-ips.xlsx:",
+        "select_button_text": "Selecionar arquivo",
+    },
 }
 
 
@@ -225,7 +255,7 @@ class Janela(ttk.Window):
             self.tab5, text="Selecione a empresa cujos dados serão processados:"
         ).pack(pady=PADYS["label_to_top"])
 
-        values = tuple(PROVIDER_TYPES_DICT)
+        values = tuple(PROVIDERS_TAB_CONFIG)
         self.provider_box = ttk.Combobox(
             self.tab5,
             textvariable=self.provider_type,
@@ -248,43 +278,31 @@ class Janela(ttk.Window):
 
         frame = self.frames_tab5.get(current_provider)
 
+        config = PROVIDERS_TAB_CONFIG[current_provider]
+
         if not frame:
             frame = ttk.Frame(self.tab5)
 
-            if current_provider == PROVIDER_TYPES_DICT["Digital Manager Guru"]:
-                ttk.Label(
-                    frame,
-                    text="Serão gerados arquivos contendo as geocoordenadas e os logs de acesso",
-                ).pack(pady=PADYS["label_to_top"])
+            select_function = (
+                selecionar_arquivo
+                if config["input_type"] == "file"
+                else selecionar_pasta
+            )
 
-                ttk.Label(
-                    frame, text="Caminho do arquivo auditoria-usuarios.json:"
-                ).pack(pady=PADYS["label_to_top"])
-                self.entry_file_tab5 = ttk.Entry(frame, width=path_input_width)
-                self.entry_file_tab5.pack(pady=PADYS["input_to_label"])
+            ttk.Label(
+                frame,
+                text=config["informative_text"],
+            ).pack(pady=PADYS["label_to_top"])
 
-                ttk.Button(
-                    frame,
-                    text="Selecionar arquivo",
-                    command=lambda: selecionar_arquivo(self.entry_file_tab5),
-                ).pack()
-            elif current_provider == PROVIDER_TYPES_DICT["Cartpanda"]:
-                ttk.Label(
-                    frame,
-                    text="Serão gerados arquivos contendo os logs de acesso",
-                ).pack(pady=PADYS["label_to_top"])
+            ttk.Label(frame, text=config["input_text"]).pack(pady=PADYS["label_to_top"])
+            self.entry_file_tab5 = ttk.Entry(frame, width=path_input_width)
+            self.entry_file_tab5.pack(pady=PADYS["input_to_label"])
 
-                ttk.Label(
-                    frame, text="Caminho do arquivo Authentications-ips.xlsx:"
-                ).pack(pady=PADYS["label_to_top"])
-                self.entry_file_tab5 = ttk.Entry(frame, width=path_input_width)
-                self.entry_file_tab5.pack(pady=PADYS["input_to_label"])
-
-                ttk.Button(
-                    frame,
-                    text="Selecionar arquivo",
-                    command=lambda: selecionar_arquivo(self.entry_file_tab5),
-                ).pack()
+            ttk.Button(
+                frame,
+                text=config["select_button_text"],
+                command=lambda: select_function(self.entry_file_tab5),
+            ).pack()
 
             # common widgets
             ttk.Button(frame, text="Processar", command=self.execute_tab5).pack(
@@ -403,11 +421,16 @@ class Janela(ttk.Window):
         provider_type = self.provider_box.get()
 
         match provider_type:
-            case value if value == PROVIDER_TYPES_DICT["Digital Manager Guru"]:
+            case value if (
+                value == PROVIDERS_TAB_CONFIG["Digital Manager Guru"]["title"]
+            ):
                 self.execute_guru(file, path)
 
-            case value if value == PROVIDER_TYPES_DICT["Cartpanda"]:
+            case value if value == PROVIDERS_TAB_CONFIG["Cartpanda"]["title"]:
                 self.execute_cartpanda(file, path)
+
+            case value if value == PROVIDERS_TAB_CONFIG["Microsoft"]["title"]:
+                self.execute_microsoft(path)
 
     def validate_file(self, file):
         file_path = Path(file)
@@ -431,7 +454,29 @@ class Janela(ttk.Window):
 
         return True
 
-    def execute_guru(self, file, path):
+    def validate_folder(self, path: Path):
+        if not path.exists():
+            messagebox.showerror("Erro", "A pasta não existe ou é inválida")
+            return False
+
+        if not path.is_dir():
+            messagebox.showerror("Erro", "Selecione uma pasta, não um arquivo")
+            return False
+
+        return True
+
+    def execute_microsoft(self, path: Path):
+        is_dir_valid = self.validate_folder(path)
+
+        if not is_dir_valid:
+            return
+
+        result = process_microsoft(path.resolve())
+
+        title = "Sucesso" if result.get("success") else "Erro"
+        messagebox.showinfo(title, result.get("message"))
+
+    def execute_guru(self, file, path: Path):
         is_file_valid = self.validate_file(file)
 
         if not is_file_valid:
@@ -448,7 +493,7 @@ class Janela(ttk.Window):
             "Os arquivo processados foram salvo na pasta 'processamentos guru'",
         )
 
-    def execute_cartpanda(self, file, path):
+    def execute_cartpanda(self, file, path: Path):
         is_file_valid = self.validate_file(file)
 
         if not is_file_valid:
