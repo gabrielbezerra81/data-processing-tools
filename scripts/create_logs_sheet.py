@@ -89,7 +89,7 @@ def create_logs_datalist(user_logs: UserAcessLogs, ips_results: dict[str, InfoIP
             "IP_AS": info.get("as"),
             "IP_Regiao": info.get("region"),
             "IP_Cidade": info.get("city"),
-            "IP_País": info.get("countryCode"),
+            "IP_País": info.get("country"),
             "IP_movel": str(info.get("mobile")),
             "IP_Proxy": str(info.get("proxy")),
             "IP_Hospedagem": str(info.get("hosting")),
