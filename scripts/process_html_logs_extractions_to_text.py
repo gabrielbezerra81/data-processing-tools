@@ -7,7 +7,6 @@ import shutil
 from typing import TypedDict
 from pathlib import Path
 from scripts.zip_tools import recursive_delete_zips
-from scripts.process_files_peron import process_files_peron
 
 
 class FolderRenameItem(TypedDict):
@@ -60,7 +59,7 @@ def process_html_file(file_path: Path):
     # Separar linhas e limpar
     lines = [
         line.strip()
-        for line in pure_text.splitlines()
+        for line in lines
         if line.strip() and not line.startswith("Meta Platforms Business Record")
     ]
 

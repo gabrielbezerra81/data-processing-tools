@@ -26,24 +26,38 @@ def find_exact_index(term: str, array: list[str]):
     return index
 
 
-def ip_parse(line: str, next_line: str):
+def ip_parse(*, line: str, next_line: str, is_whats: bool):
     access_log: AccessLog = {"ip": "", "port": "", "date": ""}
 
-    if "IP Address" in line:
-        [_, full_ip] = line.replace("\n", "").split("IP Address ")
+    if is_whats:
+        # Time 2025-07-11 23:25:58 UTC
+        # IP Address 187.21.13.125
+        ip_line = next_line
+        time_line = line
+    else:
+        # IP Address 187.21.13.125
+        # Time 2025-07-11 23:25:58 UTC
+        ip_line = line
+        time_line = next_line
+
+    if "IP Address" in ip_line:
+        [_, full_ip] = ip_line.replace("\n", "").split("IP Address ")
 
         result = extract_ip_port(full_ip)
         access_log["ip"] = result.get("ip")
         access_log["port"] = result.get("port")
 
-        if "Time" in next_line:
-            [_, time] = next_line.replace("\n", "").split("Time ")
+        if "Time" in time_line:
+            [_, time] = time_line.replace("\n", "").split("Time ")
 
             string_date = time.replace("UTC", "+0000")
             date = datetime.datetime.strptime(string_date, "%Y-%m-%d %H:%M:%S %z")
 
             access_log["date"] = date
-        # print(access_log)
+
+        if not access_log.get("ip"):
+            print("no ip found in file line ", ip_line)
+            return None
         return access_log
     else:
         return None
@@ -69,12 +83,16 @@ def create_userlogs(file):
         user_logs["service"] = service.replace("\n", "")
         user_logs["identifier"] = identifier
 
+        is_whats = "whatsapp" in user_logs["service"].lower()
+
         for index, line in enumerate(lines):
             if index < ips_index + 1:
                 continue
 
             if index + 1 < len(lines):
-                access_log = ip_parse(line, next_line=lines[index + 1])
+                access_log = ip_parse(
+                    line=line, next_line=lines[index + 1], is_whats=is_whats
+                )
                 if access_log:
                     user_logs["logs"].append(access_log)
 
