@@ -2,7 +2,7 @@ import time
 import numpy
 import json
 import requests
-from typing import TypedDict
+from typing import TypedDict, NotRequired
 from math import ceil
 import datetime
 
@@ -31,7 +31,8 @@ InfoIP_API = TypedDict(
 class AccessLog(TypedDict):
     ip: str
     port: str
-    date: datetime.datetime
+    date: datetime.datetime | None
+    log_identifier: NotRequired[str]
 
 
 class UserAcessLogs(TypedDict):

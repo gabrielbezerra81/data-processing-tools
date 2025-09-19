@@ -10,6 +10,27 @@ locale.setlocale(locale.LC_ALL, "pt_BR")
 
 Periodo = Literal["Diurno", "Noturno"]
 
+SheetColumnNames = Literal[
+    "Alvo",
+    "IP",
+    "ISO_Date",
+    "Data",
+    "Dia da semana",
+    "Data fuso",
+    "IP_dono",
+    "IP_AS",
+    "IP_Regiao",
+    "IP_Cidade",
+    "IP_País",
+    "IP_movel",
+    "IP_Proxy",
+    "IP_Hospedagem",
+    "Periodo",
+    "Latitude",
+    "Longitude",
+]
+
+
 InfoIP_Sheet = TypedDict(
     "InfoIP_Sheet",
     {
@@ -32,6 +53,14 @@ InfoIP_Sheet = TypedDict(
         "Longitude": str,
     },
 )
+
+Column_Config = TypedDict(
+    "Column_Config",
+    {"new_name": str},
+)
+
+
+Sheet_Config = dict[SheetColumnNames, Column_Config]
 
 
 def create_row_date_fields(date: datetime.datetime | None):
@@ -61,7 +90,28 @@ def create_row_date_fields(date: datetime.datetime | None):
     return [iso_date, data_hora, dia_semana, data_fuso, periodo]
 
 
-def create_logs_datalist(user_logs: UserAcessLogs, ips_results: dict[str, InfoIP_API]):
+def change_line_column_names(line: InfoIP_Sheet, sheet_config: Sheet_Config | None):
+    if not sheet_config:
+        return line
+
+    copy: InfoIP_Sheet = {}
+
+    for key in line:
+        updated = sheet_config.get(key)
+
+        if updated and updated.get("new_name"):
+            copy[updated["new_name"]] = line[key]
+        else:
+            copy[key] = line[key]
+
+    return copy
+
+
+def create_logs_datalist(
+    user_logs: UserAcessLogs,
+    ips_results: dict[str, InfoIP_API],
+    sheet_config: Sheet_Config | None = None,
+):
 
     lines: list[InfoIP_Sheet] = []
 
@@ -78,25 +128,29 @@ def create_logs_datalist(user_logs: UserAcessLogs, ips_results: dict[str, InfoIP
             log["date"]
         )
 
+        identifier = log.get("log_identifier", user_logs.get("identifier"))
+
         sheet_line: InfoIP_Sheet = {
-            "Alvo": user_logs.get("identifier"),
+            "Alvo": identifier,
             "IP": log["ip"] + port,
             "ISO_Date": iso_date,
             "Data": data_hora,
             "Dia da semana": dia_semana,
             "Data fuso": data_fuso,
-            "IP_dono": info.get("asname"),
-            "IP_AS": info.get("as"),
-            "IP_Regiao": info.get("region"),
-            "IP_Cidade": info.get("city"),
-            "IP_País": info.get("country"),
-            "IP_movel": str(info.get("mobile")),
-            "IP_Proxy": str(info.get("proxy")),
-            "IP_Hospedagem": str(info.get("hosting")),
+            "IP_dono": info.get("asname", ""),
+            "IP_AS": info.get("as", ""),
+            "IP_Regiao": info.get("region", ""),
+            "IP_Cidade": info.get("city", ""),
+            "IP_País": info.get("country", ""),
+            "IP_movel": str(info.get("mobile", "")),
+            "IP_Proxy": str(info.get("proxy", "")),
+            "IP_Hospedagem": str(info.get("hosting", "")),
             "Periodo": periodo,
-            "Latitude": str(info.get("lat")),
-            "Longitude": str(info.get("lon")),
+            "Latitude": str(info.get("lat", "")),
+            "Longitude": str(info.get("lon", "")),
         }
+
+        sheet_line = change_line_column_names(sheet_line, sheet_config)
 
         lines.append(sheet_line)
 
@@ -109,9 +163,14 @@ def create_logs_datalist(user_logs: UserAcessLogs, ips_results: dict[str, InfoIP
 
 
 def create_logs_sheet(
-    *, path: Path, user_logs: UserAcessLogs, ips_results: dict[str, InfoIP_API]
+    *,
+    path: Path,
+    user_logs: UserAcessLogs,
+    ips_results: dict[str, InfoIP_API],
+    sheet_config: Sheet_Config | None = None,
+    filename="",
 ):
-    lines = create_logs_datalist(user_logs, ips_results)
+    lines = create_logs_datalist(user_logs, ips_results, sheet_config)
 
     headers = []
 
@@ -152,8 +211,10 @@ def create_logs_sheet(
     for i, column_width in enumerate(column_widths, 1):  # ,1 to start at 1
         ws.column_dimensions[get_column_letter(i)].width = column_width
 
-    wb.save(
-        path.joinpath(
-            f"log-acesso-{user_logs['identifier']}-{user_logs['service']}.xlsx"
-        ).resolve()
+    full_name = (
+        filename + ".xlsx"
+        if filename
+        else f"log-acesso-{user_logs['identifier']}-{user_logs['service']}.xlsx"
     )
+
+    wb.save(path.joinpath(full_name).resolve())
