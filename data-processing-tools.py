@@ -16,6 +16,7 @@ from scripts.process_files_peron import process_files_peron
 from scripts.process_meta_text_logs import process_meta_text_logs
 from scripts.check_one_file_hash import check_one_file_hash
 from scripts.microsoft_transformer import process_microsoft
+from scripts.telegram_transformer import process_telegram
 
 
 path_input_width = 80
@@ -32,7 +33,7 @@ packages = {
 
 PADYS = {"input_to_label": (3, 10), "label_to_top": (10, 0), "execute_button": 20}
 
-ProviderType = Literal["Digital Manager Guru", "Cartpanda", "Microsoft"]
+ProviderType = Literal["Digital Manager Guru", "Cartpanda", "Microsoft", "Telegram"]
 
 
 class ProviderTabConfig(TypedDict):
@@ -63,6 +64,13 @@ PROVIDERS_TAB_CONFIG: dict[ProviderType, ProviderTabConfig] = {
         "input_type": "file",
         "informative_text": "Serão gerados arquivos contendo os logs de acesso",
         "input_text": "Caminho do arquivo Authentications-ips.xlsx:",
+        "select_button_text": "Selecionar arquivo",
+    },
+    "Telegram": {
+        "title": "Telegram",
+        "input_type": "file",
+        "informative_text": "Será gerado um arquivo contendo os registros de usuário",
+        "input_text": "Caminho do arquivo com extensão .json:",
         "select_button_text": "Selecionar arquivo",
     },
 }
@@ -431,6 +439,8 @@ class Janela(ttk.Window):
 
             case value if value == PROVIDERS_TAB_CONFIG["Microsoft"]["title"]:
                 self.execute_microsoft(path)
+            case value if value == PROVIDERS_TAB_CONFIG["Telegram"]["title"]:
+                self.execute_telegram(file, path)
 
     def validate_file(self, file):
         file_path = Path(file)
@@ -508,6 +518,23 @@ class Janela(ttk.Window):
         messagebox.showinfo(
             "Sucesso",
             "Os arquivo processados foram salvo na pasta 'processamentos cartpanda'",
+        )
+
+    def execute_telegram(self, file, path: Path):
+        is_file_valid = self.validate_file(file)
+
+        if not is_file_valid:
+            return
+
+        is_json = self.validate_file_extension(path.resolve(), ".json")
+        if not is_json:
+            return
+
+        process_telegram(path.resolve())
+
+        messagebox.showinfo(
+            "Sucesso",
+            "O arquivo processado foi salvo na mesma pasta do arquivo de origem",
         )
 
 
