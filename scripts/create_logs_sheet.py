@@ -132,7 +132,8 @@ def create_logs_datalist(
 
         sheet_line: InfoIP_Sheet = {
             "Alvo": identifier,
-            "IP": log["ip"] + port,
+            "IP": log["ip"],
+            "Porta lógica": port,
             "ISO_Date": iso_date,
             "Data": data_hora,
             "Dia da semana": dia_semana,
