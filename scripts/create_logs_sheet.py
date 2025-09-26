@@ -122,7 +122,7 @@ def create_logs_datalist(
         if info is None:
             continue
 
-        port = f":[{log.get("port")}]" if log.get("port") else ""
+        port = f"[{log.get("port")}]" if log.get("port") else ""
 
         [iso_date, data_hora, dia_semana, data_fuso, periodo] = create_row_date_fields(
             log["date"]
