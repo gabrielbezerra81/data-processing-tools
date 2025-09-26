@@ -17,6 +17,7 @@ from scripts.process_meta_text_logs import process_meta_text_logs
 from scripts.check_one_file_hash import check_one_file_hash
 from scripts.microsoft_transformer import process_microsoft
 from scripts.telegram_transformer import process_telegram
+from scripts.yahoo_transformer import process_yahoo
 
 
 path_input_width = 80
@@ -33,7 +34,9 @@ packages = {
 
 PADYS = {"input_to_label": (3, 10), "label_to_top": (10, 0), "execute_button": 20}
 
-ProviderType = Literal["Digital Manager Guru", "Cartpanda", "Microsoft", "Telegram"]
+ProviderType = Literal[
+    "Digital Manager Guru", "Cartpanda", "Microsoft", "Telegram", "Yahoo"
+]
 
 
 class ProviderTabConfig(TypedDict):
@@ -72,6 +75,13 @@ PROVIDERS_TAB_CONFIG: dict[ProviderType, ProviderTabConfig] = {
         "informative_text": "Será gerado um arquivo contendo os registros de usuário",
         "input_text": "Caminho do arquivo com extensão .json:",
         "select_button_text": "Selecionar arquivo",
+    },
+    "Yahoo": {
+        "title": "Yahoo",
+        "input_type": "folder",
+        "informative_text": "Serão gerados arquivos contendo os logs de acesso",
+        "input_text": "Caminho da pasta onde se encontram os logs em .txt",
+        "select_button_text": "Selecionar pasta",
     },
 }
 
@@ -441,6 +451,8 @@ class Janela(ttk.Window):
                 self.execute_microsoft(path)
             case value if value == PROVIDERS_TAB_CONFIG["Telegram"]["title"]:
                 self.execute_telegram(file, path)
+            case value if value == PROVIDERS_TAB_CONFIG["Yahoo"]["title"]:
+                self.execute_yahoo(path)
 
     def validate_file(self, file):
         file_path = Path(file)
@@ -536,6 +548,17 @@ class Janela(ttk.Window):
             "Sucesso",
             "O arquivo processado foi salvo na mesma pasta do arquivo de origem",
         )
+
+    def execute_yahoo(self, path: Path):
+        is_dir_valid = self.validate_folder(path)
+
+        if not is_dir_valid:
+            return
+
+        result = process_yahoo(path.resolve())
+
+        title = "Sucesso" if result.get("success") else "Erro"
+        messagebox.showinfo(title, result.get("message"))
 
 
 def is_frozen():
