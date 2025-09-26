@@ -71,7 +71,7 @@ def get_ips_info(user_logs: UserAcessLogs):
                 ips_results[ip] = data[index]
 
             if requests_left == "1" or requests_left == "0":
-                msg = f"Esperando {time_to_reset} segundos para o limite da API resetar..."
+                msg = f"Esperando {time_to_reset} segundos para o limite da IP API resetar..."
                 time_to_reset = int(time_to_reset) + 2
 
                 print(msg)
