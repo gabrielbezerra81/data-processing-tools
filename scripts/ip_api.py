@@ -31,6 +31,7 @@ InfoIP_API = TypedDict(
 class AccessLog(TypedDict):
     ip: str
     port: str
+    # utc_date
     date: datetime.datetime | None
     log_identifier: NotRequired[str]
 

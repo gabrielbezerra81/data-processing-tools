@@ -63,14 +63,15 @@ Column_Config = TypedDict(
 Sheet_Config = dict[SheetColumnNames, Column_Config]
 
 
-def create_row_date_fields(date: datetime.datetime | None):
-    if not date:
+def create_row_date_fields(utc_date: datetime.datetime | None):
+    # always pass utc_date
+    if not utc_date:
         return ["", "", "", "", ""]
 
     current_local_time = datetime.datetime.now().astimezone()
     current_timezone = current_local_time.tzinfo
 
-    local_date = date.astimezone(current_timezone)
+    local_date = utc_date.astimezone(current_timezone)
 
     iso_date = local_date.isoformat()
     data_hora = local_date.strftime("%d/%m/%Y %H:%M")
